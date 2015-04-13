@@ -42,7 +42,7 @@ daemon run
   - if in range, issue warning
   - if userdata contains force option, disable user
 
-- write cloudwatch log whenever adding or deleting user/group
+- write cloudtrail log whenever adding or deleting user/group
 - installing daemon via userdata/cloud-init
 """
 
