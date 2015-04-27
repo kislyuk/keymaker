@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAK
 subparsers = parser.add_subparsers(dest="command")
 
 parser_configure = subparsers.add_parser("configure", help="Perform one-time setup on an AWS account", description="ddd")
+parser_login.add_argument("--yes", help='Assume a "yes" response to all prompts. Required if running non-interactively', action="store_true")
 
 parser_upload = subparsers.add_parser("upload", help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.", description="ddd")
 

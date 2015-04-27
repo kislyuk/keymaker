@@ -3,13 +3,14 @@ import os, sys, json, time, logging
 import boto3
 from botocore.exceptions import ClientError
 
-cloudtrail = boto3.client("cloudtrail")
-
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.getLogger("botocore.vendored.requests").setLevel(logging.DEBUG)
 
+# TODO: PYTHON LOGGING CLOUDWATCH HANDLER!
+
+cloudtrail = boto3.client("cloudtrail")
 iam=boto3.resource("iam")
 s3=boto3.resource("s3")
 #cloudtrail = boto3.client("cloudtrail")
