@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+
+"""
+Keymaker: Lightweight SSH key management on AWS EC2
+
+TODO: description
+"""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import os, sys, argparse
+from keymaker.printing import KEYMAKER_LOGO
+
+parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
+                                 formatter_class=argparse.RawTextHelpFormatter)
+
+subparsers = parser.add_subparsers(dest="command")
+
+parser_configure = subparsers.add_parser("configure", help="Perform one-time setup on an AWS account", description="ddd")
+
+parser_upload = subparsers.add_parser("upload", help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.", description="ddd")
+
+parser_upload = subparsers.add_parser("install", help="Install Keymaker SSH auth module. Run this command on each EC2 host that will be using Keymaker to authenticate users.", description="ddd")
+
+#parser_upload.add_argument("--foo", help="bar")
+
+#x_action = parser.add_argument("--xz", help="h")
+#port_action = parser_login.add_argument("--port", type=int, help="port")
+#port_action.completer = ...
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit(1)
+
+args = parser.parse_args()

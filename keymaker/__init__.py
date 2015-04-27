@@ -19,8 +19,45 @@ s3=boto3.resource("s3")
 #response = client.create_trail(Name=__name__, S3BucketName=__name__)
 
 """
+
+> keymaker
+Using AWS key: <KEY ID>
+Account ID: <ID>
+Checking if key has admin privileges... GREEN(OK)
+Your account is not configured for use with Keymaker. Exiting.
+Your account is not configured for use with Keymaker. Configure now? [y/n] Please answer yes or no.
+Configuring account.
+Creating S3 bucket "..."... GREEN(OK)
+Setting permissions... GREEN(OK)
+Done! Next steps:
+
+* Install Keymaker on your hosts with BOLD(keymaker install).
+* Upload user SSH credentials with BOLD(keymaker upload).
+
+> keymaker install
+> keymaker upload
+
 supervisor run
 - ensure bucket/perms
+
+See http://docs.aws.amazon.com/AmazonS3/latest/dev/example-policies-s3.html
+{
+   "Version":"2012-10-17",
+   "Statement":[
+      {
+         "Effect":"Allow",
+         "Action":[
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:GetObjectVersion",
+            "s3:DeleteObject",
+            "s3:DeleteObjectVersion"
+         ],
+         "Resource":"arn:aws:s3:::examplebucket/${aws:username}/*"
+      }
+   ]
+}
+
 - ensure specified or current user has corresponding IAM user
 - set bucket policies
 
@@ -50,7 +87,7 @@ daemon run
 
 from collections import namedtuple
 
-class ARN(namedtuple("ARN", ("partition", "service", "region", "account", "resource"))):
+class ARN(namedtuple("ARN", "partition service region account resource")):
     def __str__(self):
         return ":".join(["arn"] + list(self))
 
