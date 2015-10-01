@@ -1,3 +1,11 @@
+"""
+TODO:
+- hostkey propagation via cloud-init hostkey upload / ssh client hostkey verification hook
+- group propagation (incl. sudoers)
+
+- efs integration
+"""
+
 import os, sys, json, time, logging
 
 import boto3
