@@ -2,7 +2,7 @@
 TODO:
 - hostkey propagation via cloud-init hostkey upload / ssh client hostkey verification hook
 - group propagation (incl. sudoers)
-
+- store all keys in key pair objects; only metadata in S3
 - efs integration
 """
 
