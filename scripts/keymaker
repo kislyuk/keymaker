@@ -9,20 +9,33 @@ TODO: description
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from io import open
+
 import os, sys, argparse
 from keymaker.printing import KEYMAKER_LOGO
+
+from keymaker import upload
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
 
 subparsers = parser.add_subparsers(dest="command")
 
-parser_configure = subparsers.add_parser("configure", help="Perform one-time setup on an AWS account", description="ddd")
-parser_login.add_argument("--yes", help='Assume a "yes" response to all prompts. Required if running non-interactively', action="store_true")
+parser_configure = subparsers.add_parser("configure",
+                                         help="Perform one-time setup on an AWS account",
+                                         description="TODO")
+#parser_login.add_argument("--yes",
+#                          help='Assume a "yes" response to all prompts. Required if running non-interactively',
+#                          action="store_true")
 
-parser_upload = subparsers.add_parser("upload", help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.", description="ddd")
+parser_upload = subparsers.add_parser("upload",
+                                      help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.",
+                                      description="By default, an SSH public key is extracted from the output of ``ssh-add``. You can also specify an existing SSH key file with --identity.")
+parser_upload.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
 
-parser_upload = subparsers.add_parser("install", help="Install Keymaker SSH auth module. Run this command on each EC2 host that will be using Keymaker to authenticate users.", description="ddd")
+parser_install = subparsers.add_parser("install",
+                                       help="Install Keymaker SSH auth module. Run this command on each EC2 host that will be using Keymaker to authenticate users.",
+                                       description="TODO")
 
 #parser_upload.add_argument("--foo", help="bar")
 
@@ -35,3 +48,4 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 args = parser.parse_args()
+locals()[args.command](args)

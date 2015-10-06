@@ -1,2 +1,4 @@
-boto3 >= 0.0.16
-pycwl >= 0.1.1
+boto3 >= 1.1.4
+watchtower >= 0.1.2
+requests >= 2.7.0
+# paramiko >= 1.15.2
