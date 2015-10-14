@@ -6,6 +6,10 @@ TODO:
 - efs integration
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from io import open
+
 import os, sys, json, time, logging, subprocess
 
 import boto3
@@ -16,12 +20,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.getLogger("botocore.vendored.requests").setLevel(logging.DEBUG)
 
-# TODO: PYTHON LOGGING CLOUDWATCH HANDLER!
+# TODO: integration with watchtower
 
-cloudtrail = boto3.client("cloudtrail")
-iam=boto3.resource("iam")
-s3=boto3.resource("s3")
 #cloudtrail = boto3.client("cloudtrail")
+#iam=boto3.resource("iam")
+#s3=boto3.resource("s3")
 #sqs=boto3.resource("sqs")
 #sqs_client=boto3.client("sqs")
 
@@ -240,46 +243,51 @@ def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
     exit(code)
 
-def load_key(filename):
+def load_ssh_public_key(filename):
     with open(filename) as fh:
         key = fh.read()
         if "PRIVATE KEY" in key:
             logger.info("Extracting public key from private key {}".format(filename))
-            key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename])
+            key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename]).decode()
+    return key
 
-def select_key(args):
-    if args.identity:
-        if not os.path.exists(args.identity):
-            err_exit("Path {} does not exist".format(args.identity))
-        key = load_key(args.identity)
+def select_ssh_public_key(identity=None):
+    if identity:
+        if not os.path.exists(identity):
+            err_exit("Path {} does not exist".format(identity))
+        return load_ssh_public_key(identity)
     else:
         try:
-            keys = subprocess.check_output(["ssh-add", "-L"]).splitlines()
+            keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
             if len(keys) > 1:
                 exit('Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
-            key = keys[0]
+            return keys[0]
         except subprocess.CalledProcessError:
             default_path = os.path.expanduser("~/.ssh/id_rsa.pub")
             if os.path.exists(default_path):
                 logger.warning('Using {} as your SSH key. If this is not what you want, specify one with --identity or load it with ssh-add'.format(default_path))
-                key = load_key(default_path)
+                return load_ssh_public_key(default_path)
             exit('No keys reported by ssh-add, and no default . Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
-    return key
 
 def upload(args):
-    key = select_key(args)
+    ssh_public_key = select_ssh_public_key(args.identity)
+    iam = boto3.resource("iam")
+    user = iam.CurrentUser().user
+    from botocore.exceptions import ClientError
+    try:
+        user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "LimitExceeded":
+            logger.error('The current IAM user has filled their public SSH key quota. Delete keys with "aws iam list-ssh-public-keys; aws iam delete-ssh-public-key --user-name USER --ssh-public-key-id KEY_ID".')
+        raise
 
-        
-    for key in subprocess.check_output(["ssh-add", "-L"]).splitlines():
-        print("KEY", key)
-#    import paramiko
+
+    #    import paramiko
 #    for key in paramiko.agent.Agent().get_keys():
 #        print(key.get_name() + " " + key.get_base64(), dir(key), key.__dict__)
     #print("Select an SSH key pair to use when connecting to EC2 instances. The public key will be saved to your IAM user account. The private key will remain on this computer.")
     #for identity in subprocess.check
     # TODO: enum regions
-    iam = boto3.resource("iam")
-    user = iam.CurrentUser().user
 #    ssh_key = new_ssh_key()
     #user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=public_key(ssh_key))
 #    ssh_key.write_private_key_file(get_key_path("keymaker"))

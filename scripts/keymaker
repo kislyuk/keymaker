@@ -9,9 +9,10 @@ TODO: description
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from io import open
-
 import os, sys, argparse
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from keymaker.printing import KEYMAKER_LOGO
 
 from keymaker import upload
@@ -24,7 +25,7 @@ subparsers = parser.add_subparsers(dest="command")
 parser_configure = subparsers.add_parser("configure",
                                          help="Perform one-time setup on an AWS account",
                                          description="TODO")
-#parser_login.add_argument("--yes",
+#parser_configure.add_argument("--yes",
 #                          help='Assume a "yes" response to all prompts. Required if running non-interactively',
 #                          action="store_true")
 
@@ -37,11 +38,7 @@ parser_install = subparsers.add_parser("install",
                                        help="Install Keymaker SSH auth module. Run this command on each EC2 host that will be using Keymaker to authenticate users.",
                                        description="TODO")
 
-#parser_upload.add_argument("--foo", help="bar")
-
-#x_action = parser.add_argument("--xz", help="h")
-#port_action = parser_login.add_argument("--port", type=int, help="port")
-#port_action.completer = ...
+# action.completer = ...
 
 if len(sys.argv) == 1:
     parser.print_help()
