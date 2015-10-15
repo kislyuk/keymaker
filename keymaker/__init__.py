@@ -267,7 +267,7 @@ def select_ssh_public_key(identity=None):
             if os.path.exists(default_path):
                 logger.warning('Using {} as your SSH key. If this is not what you want, specify one with --identity or load it with ssh-add'.format(default_path))
                 return load_ssh_public_key(default_path)
-            exit('No keys reported by ssh-add, and no default . Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
+            exit('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
 
 def upload(args):
     ssh_public_key = select_ssh_public_key(args.identity)
