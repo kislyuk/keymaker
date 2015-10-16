@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from keymaker.printing import KEYMAKER_LOGO
 
-from keymaker import upload
+from keymaker import configure, upload, install
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -37,7 +37,7 @@ parser_upload.add_argument("--identity", help="An existing SSH key filename to g
 parser_install = subparsers.add_parser("install",
                                        help="Install Keymaker SSH auth module. Run this command on each EC2 host that will be using Keymaker to authenticate users.",
                                        description="TODO")
-
+parser_install.add_argument("--user", help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
 # action.completer = ...
 
 if len(sys.argv) == 1:

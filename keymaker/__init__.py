@@ -213,22 +213,42 @@ def watch(bucket, interval=5):
         time.sleep(interval)
 """
 
-def install():
+def configure(args):
+    print("Will configure", args)
+
+def install(args):
+    print("Will install", args)
     # Check sshd version
     # Create keymaker user, no shell
     # Install /usr/sbin/keymaker-get-public-keys from code literal, set permissions
     # If /etc/ssh/sshd_config already contains AuthorizedKeysCommand, AuthorizedKeysCommandUser:
     # - if values equal, log OK
     # - else log instructions: "Please remove the following directives from /etc/ssh/sshd_config:"
-    try:
-        pass
-        # Back up /etc/ssh/sshd_config
-        # Add:
+
+    if not os.path.exists("/usr/sbin/keymaker-get-public-keys"):
+        with open("/usr/sbin/keymaker-get-public-keys", "w") as fh:
+            print("#!/bin/bash", file=fh)
+            # FIXME: for security the path here should be absolute
+            print('keymaker "$@"', file=fh)
+
+    with open("/etc/ssh/sshd_config") as fh:
+        sshd_config = fh.readlines()
+    authorized_keys_command_line = "AuthorizedKeysCommand /usr/sbin/keymaker-get-public-keys"
+    if authorized_keys_command_line not in sshd_config:
+        with open("/etc/ssh/sshd_config", "a") as fh:
+            print(authorized_keys_command_line, file=fh)
+
+    user = args.user or "keymaker"
+    # TODO: create user
+
+    authorized_keys_command_user_line = "AuthorizedKeysCommandUser " + user
+    if authorized_keys_command_user_line not in sshd_config:
+        with open("/etc/ssh/sshd_config", "a") as fh:
+            print(authorized_keys_command_user_line, file=fh)
+
         #AuthorizedKeysCommand /usr/sbin/keymaker-get-public-keys
         #AuthorizedKeysCommandUser keymaker
         # Run sshd -t, set OK
-    except:
-        pass
         # If not OK: revert to backup copy
 
 #    for i in range(2000):
