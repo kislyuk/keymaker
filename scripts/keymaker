@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from keymaker.printing import KEYMAKER_LOGO
 
-from keymaker import configure, upload, install
+from keymaker import configure, upload, install, get_authorized_keys
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -39,6 +39,11 @@ parser_install = subparsers.add_parser("install",
                                        description="TODO")
 parser_install.add_argument("--user", help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
 # action.completer = ...
+
+parser_get_authorized_keys = subparsers.add_parser("get_authorized_keys",
+                                                   help="Get authorized keys for a given IAM/SSH user",
+                                                   description="This command is used by sshd as AuthorizedKeysCommand when processing authentication requests.")
+parser_get_authorized_keys.add_argument("user", help="User to get authorized keys for")
 
 if len(sys.argv) == 1:
     parser.print_help()

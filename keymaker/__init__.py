@@ -10,7 +10,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from io import open
 
-import os, sys, json, time, logging, subprocess
+import os, sys, json, time, logging, subprocess, pwd
 
 import boto3
 from botocore.exceptions import ClientError
@@ -216,47 +216,51 @@ def watch(bucket, interval=5):
 def configure(args):
     print("Will configure", args)
 
+def get_authorized_keys(args):
+    iam = boto3.client("iam")
+    for key_desc in iam.list_ssh_public_keys(UserName=args.user)["SSHPublicKeys"]:
+        res = iam.get_ssh_public_key(UserName=args.user, SSHPublicKeyId=key_desc["SSHPublicKeyId"], Encoding="SSH")
+        key = res["SSHPublicKey"]["SSHPublicKeyBody"]
+        print(args.user, key)
+
 def install(args):
-    print("Will install", args)
     # Check sshd version
-    # Create keymaker user, no shell
     # Install /usr/sbin/keymaker-get-public-keys from code literal, set permissions
     # If /etc/ssh/sshd_config already contains AuthorizedKeysCommand, AuthorizedKeysCommandUser:
     # - if values equal, log OK
     # - else log instructions: "Please remove the following directives from /etc/ssh/sshd_config:"
 
-    if not os.path.exists("/usr/sbin/keymaker-get-public-keys"):
-        with open("/usr/sbin/keymaker-get-public-keys", "w") as fh:
-            print("#!/bin/bash", file=fh)
-            # FIXME: for security the path here should be absolute
-            print('keymaker "$@"', file=fh)
+    user = args.user or "keymaker"
+    try:
+        pwd.getpwnam(user)
+    except KeyError:
+        subprocess.check_call(["useradd", user,
+                               "--comment", "Keymaker SSH key daemon (https://github.com/kislyuk/keymaker)",
+                               "--shell", "/usr/sbin/nologin"])
+
+    authorized_keys_script_path = "/usr/sbin/keymaker-get-public-keys"
+    with open(authorized_keys_script_path, "w") as fh:
+        print("#!/bin/bash", file=fh)
+        print('keymaker get_authorized_keys "$@"', file=fh)
+    subprocess.check_call(["chown", "root", authorized_keys_script_path])
+    subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])
 
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config = fh.readlines()
-    authorized_keys_command_line = "AuthorizedKeysCommand /usr/sbin/keymaker-get-public-keys"
+    authorized_keys_command_line = "AuthorizedKeysCommand " + authorized_keys_script_path
     if authorized_keys_command_line not in sshd_config:
         with open("/etc/ssh/sshd_config", "a") as fh:
             print(authorized_keys_command_line, file=fh)
-
-    user = args.user or "keymaker"
-    # TODO: create user
 
     authorized_keys_command_user_line = "AuthorizedKeysCommandUser " + user
     if authorized_keys_command_user_line not in sshd_config:
         with open("/etc/ssh/sshd_config", "a") as fh:
             print(authorized_keys_command_user_line, file=fh)
 
-        #AuthorizedKeysCommand /usr/sbin/keymaker-get-public-keys
-        #AuthorizedKeysCommandUser keymaker
-        # Run sshd -t, set OK
-        # If not OK: revert to backup copy
-
-#    for i in range(2000):
-#        bucket.put_object(Key="/user/penguin/key{}".format(i), Body="foo")
+    # Run sshd -t, set OK
+    # If not OK: revert to backup copy
 
 #set_notifications(bucket)
-#ec2=boto3.resource('ec2')
-
 # To userdata -> cloud-init: pip3 install keymaker; keymaker install
 
 def err_exit(msg, code=3):
