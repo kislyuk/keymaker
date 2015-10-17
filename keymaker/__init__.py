@@ -219,17 +219,11 @@ def configure(args):
 def get_authorized_keys(args):
     iam = boto3.client("iam")
     for key_desc in iam.list_ssh_public_keys(UserName=args.user)["SSHPublicKeys"]:
-        res = iam.get_ssh_public_key(UserName=args.user, SSHPublicKeyId=key_desc["SSHPublicKeyId"], Encoding="SSH")
-        key = res["SSHPublicKey"]["SSHPublicKeyBody"]
-        print(args.user, key)
+        key = iam.get_ssh_public_key(UserName=args.user, SSHPublicKeyId=key_desc["SSHPublicKeyId"], Encoding="SSH")
+        if key["SSHPublicKey"]["Status"] == "Active":
+            print(key["SSHPublicKey"]["SSHPublicKeyBody"])
 
 def install(args):
-    # Check sshd version
-    # Install /usr/sbin/keymaker-get-public-keys from code literal, set permissions
-    # If /etc/ssh/sshd_config already contains AuthorizedKeysCommand, AuthorizedKeysCommandUser:
-    # - if values equal, log OK
-    # - else log instructions: "Please remove the following directives from /etc/ssh/sshd_config:"
-
     user = args.user or "keymaker"
     try:
         pwd.getpwnam(user)
@@ -257,8 +251,8 @@ def install(args):
         with open("/etc/ssh/sshd_config", "a") as fh:
             print(authorized_keys_command_user_line, file=fh)
 
-    # Run sshd -t, set OK
-    # If not OK: revert to backup copy
+    # TODO: print explanation if errors occur
+    subprocess.check_call(["sshd", "-t"])
 
 #set_notifications(bucket)
 # To userdata -> cloud-init: pip3 install keymaker; keymaker install
