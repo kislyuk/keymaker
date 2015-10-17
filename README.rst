@@ -1,3 +1,5 @@
+**WARNING**: Keymaker is a work in progress. It does not work yet.
+
 Keymaker: Lightweight SSH key management on AWS EC2
 ===================================================
 
