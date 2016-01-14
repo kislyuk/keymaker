@@ -5,11 +5,11 @@ EX_NOPERM=77
 
 if getent passwd "$PAM_USER" >/dev/null 2>&1; then
     # Terminate the PAM authentication stack. The SSH client will fail since the user didn't supply a valid public key.
-    exit EX_NOPERM
+    exit $EX_NOPERM
 else
     # Create the user, then terminate the PAM authentication stack. The SSH client will fail, and the user will need to try again.
     # TODO: figure out how to display info banner
     # TODO: aws iam list-users
     adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER"
-    exit EX_TEMPFAIL
+    exit $EX_TEMPFAIL
 fi
