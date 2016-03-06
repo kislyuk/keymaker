@@ -229,7 +229,7 @@ def install(args):
         pwd.getpwnam(user)
     except KeyError:
         subprocess.check_call(["useradd", user,
-                               "--comment", "Keymaker SSH key daemon (https://github.com/kislyuk/keymaker)",
+                               "--comment", "Keymaker SSH key daemon",
                                "--shell", "/usr/sbin/nologin"])
 
     authorized_keys_script_path = "/usr/sbin/keymaker-get-public-keys"

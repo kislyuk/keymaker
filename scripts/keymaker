@@ -4,7 +4,7 @@
 """
 Keymaker: Lightweight SSH key management on AWS EC2
 
-TODO: description
+See https://github.com/kislyuk/keymaker for documentation.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAK
 subparsers = parser.add_subparsers(dest="command")
 
 parser_configure = subparsers.add_parser("configure",
-                                         help="Perform one-time setup on an AWS account",
+                                         help="Perform one-time setup on an AWS account. Run this command for each AWS account that will use Keymaker to authenticate users.",
                                          description="TODO")
 #parser_configure.add_argument("--yes",
 #                          help='Assume a "yes" response to all prompts. Required if running non-interactively',
@@ -35,7 +35,7 @@ parser_upload = subparsers.add_parser("upload",
 parser_upload.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
 
 parser_install = subparsers.add_parser("install",
-                                       help="Install Keymaker SSH auth module. Run this command on each EC2 host that will be using Keymaker to authenticate users.",
+                                       help="Install Keymaker SSH auth module. Run this command on each EC2 host that will use Keymaker to authenticate users.",
                                        description="TODO")
 parser_install.add_argument("--user", help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
 # action.completer = ...
