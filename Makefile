@@ -5,15 +5,17 @@ env: requirements.txt
 	source env/bin/activate; pip install --requirement=requirements.txt
 	source env/bin/activate; pip list --outdated
 
-test: env
-	-pylint -E keymaker
+flake8:
+	./setup.py flake8
+
+test: env flake8
 	source env/bin/activate; ./test/test.py -v
 
 test3: env
 	python3 ./test/test.py -v
 
 release: docs
-	python setup.py sdist upload -s -i D2069255
+	python setup.py sdist bdist_wheel upload -s -i D2069255
 
 init_docs:
 	cd docs; sphinx-quickstart
@@ -24,4 +26,4 @@ docs:
 install:
 	./setup.py install
 
-.PHONY: test release docs
+.PHONY: test flake8 release docs
