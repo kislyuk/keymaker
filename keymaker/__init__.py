@@ -240,25 +240,26 @@ def install(args):
     subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])
 
     with open("/etc/ssh/sshd_config") as fh:
-        sshd_config = fh.readlines()
-    config_lines = [
-        "AuthorizedKeysCommand " + authorized_keys_script_path,
-        "AuthorizedKeysCommandUser " + user,
-        "ChallengeResponseAuthentication yes",
-        "AuthenticationMethods publickey keyboard-interactive:pam,publickey"
-    ]
-    with open("/etc/ssh/sshd_config", "a") as fh:
-        for line in config_lines:
-            if line not in sshd_config:
-                print(line, file=fh)
+        sshd_config_lines = fh.read().splitlines()
+    remove_lines = ["ChallengeResponseAuthentication no"]
+    add_lines = ["AuthorizedKeysCommand " + authorized_keys_script_path,
+                 "AuthorizedKeysCommandUser " + user,
+                 "ChallengeResponseAuthentication yes",
+                 "AuthenticationMethods publickey keyboard-interactive:pam,publickey"]
+    sshd_config_lines = [l for l in sshd_config_lines if l not in remove_lines]
+    sshd_config_lines += [l for l in add_lines if l not in sshd_config_lines]
+    with open("/etc/ssh/sshd_config", "w") as fh:
+        for line in sshd_config_lines:
+            print(line, file=fh)
 
     # TODO: print explanation if errors occur
     subprocess.check_call(["sshd", "-t"])
 
     pam_config_line = "auth requisite pam_exec.so stdout /usr/local/bin/keymaker-create-account-for-iam-user"
     with open("/etc/pam.d/sshd") as fh:
-        pam_config_lines = fh.readlines()
-    pam_config_lines.insert(1, pam_config_line)
+        pam_config_lines = fh.read().splitlines()
+    if pam_config_line not in pam_config_lines:
+        pam_config_lines.insert(1, pam_config_line)
     with open("/etc/pam.d/sshd", "w") as fh:
         for line in pam_config_lines:
             print(line, file=fh)
