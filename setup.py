@@ -7,7 +7,7 @@ install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(
 
 setup(
     name='keymaker',
-    version='0.0.2',
+    version='0.0.3',
     url='https://github.com/kislyuk/keymaker',
     license='Apache Software License',
     author='Andrey Kislyuk',
@@ -16,6 +16,7 @@ setup(
     long_description=open('README.rst').read(),
     install_requires=install_requires,
     packages=find_packages(exclude=['test']),
+    scripts=glob.glob('scripts/*'),
     platforms=['MacOS X', 'Posix'],
     include_package_data=True,
     classifiers=[
