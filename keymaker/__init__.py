@@ -234,28 +234,34 @@ def install(args):
 
     authorized_keys_script_path = "/usr/sbin/keymaker-get-public-keys"
     with open(authorized_keys_script_path, "w") as fh:
-        print("#!/bin/bash", file=fh)
+        print("#!/bin/bash -e", file=fh)
         print('keymaker get_authorized_keys "$@"', file=fh)
     subprocess.check_call(["chown", "root", authorized_keys_script_path])
     subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])
 
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config = fh.readlines()
-    authorized_keys_command_line = "AuthorizedKeysCommand " + authorized_keys_script_path
-    if authorized_keys_command_line not in sshd_config:
-        with open("/etc/ssh/sshd_config", "a") as fh:
-            print(authorized_keys_command_line, file=fh)
-
-    authorized_keys_command_user_line = "AuthorizedKeysCommandUser " + user
-    if authorized_keys_command_user_line not in sshd_config:
-        with open("/etc/ssh/sshd_config", "a") as fh:
-            print(authorized_keys_command_user_line, file=fh)
+    config_lines = [
+        "AuthorizedKeysCommand " + authorized_keys_script_path,
+        "AuthorizedKeysCommandUser " + user,
+        "ChallengeResponseAuthentication yes",
+        "AuthenticationMethods publickey keyboard-interactive:pam,publickey"
+    ]
+    with open("/etc/ssh/sshd_config", "a") as fh:
+        for line in config_lines:
+            if line not in sshd_config:
+                print(line, file=fh)
 
     # TODO: print explanation if errors occur
     subprocess.check_call(["sshd", "-t"])
 
-#set_notifications(bucket)
-# To userdata -> cloud-init: pip3 install keymaker; keymaker install
+    pam_config_line = "auth requisite pam_exec.so stdout /usr/local/bin/keymaker-create-account-for-iam-user"
+    with open("/etc/pam.d/sshd") as fh:
+        pam_config_lines = fh.readlines()
+    pam_config_lines.insert(1, pam_config_line)
+    with open("/etc/pam.d/sshd", "w") as fh:
+        for line in pam_config_lines:
+            print(line, file=fh)
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)

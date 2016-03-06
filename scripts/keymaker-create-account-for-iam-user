@@ -9,7 +9,8 @@ if getent passwd "$PAM_USER" >/dev/null 2>&1; then
 else
     # Create the user, then terminate the PAM authentication stack. The SSH client will fail, and the user will need to try again.
     # TODO: figure out how to display info banner
-    # TODO: aws iam list-users
+    # Verify that the IAM user exists.
+    keymaker get_authorized_keys "$PAM_USER" > /dev/null
     adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER"
     exit $EX_TEMPFAIL
 fi

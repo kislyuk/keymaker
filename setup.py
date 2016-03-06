@@ -7,7 +7,7 @@ install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(
 
 setup(
     name='keymaker',
-    version='0.0.1',
+    version='0.0.2',
     url='https://github.com/kislyuk/keymaker',
     license='Apache Software License',
     author='Andrey Kislyuk',
@@ -15,7 +15,7 @@ setup(
     description='Lightweight SSH key management on AWS EC2',
     long_description=open('README.rst').read(),
     install_requires=install_requires,
-    packages = find_packages(exclude=['test']),
+    packages=find_packages(exclude=['test']),
     platforms=['MacOS X', 'Posix'],
     include_package_data=True,
     classifiers=[
