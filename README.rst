@@ -1,26 +1,23 @@
-**WARNING**: Keymaker is a work in progress. It does not work yet.
-
 Keymaker: Lightweight SSH key management on AWS EC2
 ===================================================
 
-Keymaker is **the missing link between SSH and IAM accounts on Amazon
-AWS**. It's a stateless synchronization engine that securely manages
-the process of SSH public key sharing and verification, user and group
-synchronization, and home directory sharing (via optional `EFS
-<https://aws.amazon.com/efs/>`_ integration). You, the AWS account
-administrator, define or import user and group identities in IAM, and
-instances in your account dynamically retrieve and use those
-identities to authenticate your users. Keymaker is the modern,
-minimalistic alternative to **LDAP** or **Active Directory**.
+Keymaker is **the missing link between SSH and IAM accounts on Amazon AWS**. It's a stateless synchronization engine
+that securely manages the process of SSH public key sharing and verification, user and group synchronization, and home
+directory sharing (via optional `EFS <https://aws.amazon.com/efs/>`_ integration). You, the AWS account administrator,
+define or import user and group identities in IAM, and instances in your account dynamically retrieve and use those
+identities to authenticate your users. Keymaker is the modern, minimalistic alternative to **LDAP** or **Active
+Directory** authentication.
 
 Installation
 ------------
 ::
 
     pip install keymaker
+    keymaker install
 
-Synopsis
---------
+Principle of operation
+----------------------
+
 TODO
 
 Authors
