@@ -5,7 +5,7 @@ python:
 
 install:
     - python setup.py install
-    - pip install coverage coveralls
+    - pip install coverage
 
 script:
     - coverage run --source=keymaker ./test/test.py
