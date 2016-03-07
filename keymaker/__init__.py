@@ -319,7 +319,7 @@ def select_ssh_public_key(identity=None):
                 return load_ssh_public_key(default_path)
             exit('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
 
-def upload(args):
+def upload_key(args):
     ssh_public_key = select_ssh_public_key(args.identity)
     iam = boto3.resource("iam")
     user = iam.CurrentUser().user
@@ -339,6 +339,28 @@ def list_keys(args):
         user = iam.CurrentUser().user
     for key in iam.meta.client.list_ssh_public_keys(UserName=user.name)["SSHPublicKeys"]:
         print(key)
+
+def update_key(args, status):
+    iam = boto3.resource("iam")
+    if args.user:
+        user = iam.User(args.user)
+    else:
+        user = iam.CurrentUser().user
+    return iam.meta.client.update_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id, Status=status)
+
+def disable_key(args):
+    print(update_key(args, status="Inactive"))
+
+def enable_key(args):
+    print(update_key(args, status="Active"))
+
+def delete_key(args):
+    iam = boto3.resource("iam")
+    if args.user:
+        user = iam.User(args.user)
+    else:
+        user = iam.CurrentUser().user
+    print(iam.meta.client.delete_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id))
 
     #    import paramiko
 #    for key in paramiko.agent.Agent().get_keys():

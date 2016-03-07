@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from keymaker.printing import KEYMAKER_LOGO
 
-from keymaker import configure, upload, install, get_authorized_keys, get_uid, get_groups, list_keys, logger
+from keymaker import configure, install, get_authorized_keys, get_uid, get_groups, list_keys, upload_key, disable_key, enable_key, delete_key, logger
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -29,10 +29,10 @@ parser_configure = subparsers.add_parser("configure",
 #                          help='Assume a "yes" response to all prompts. Required if running non-interactively',
 #                          action="store_true")
 
-parser_upload = subparsers.add_parser("upload",
-                                      help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.",
-                                      description="By default, an SSH public key is extracted from the output of ``ssh-add``. You can also specify an existing SSH key file with --identity.")
-parser_upload.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
+parser_upload_key = subparsers.add_parser("upload_key",
+                                          help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.",
+                                          description="By default, an SSH public key is extracted from the output of ``ssh-add``. You can also specify an existing SSH key file with --identity.")
+parser_upload_key.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
 
 parser_install = subparsers.add_parser("install",
                                        help="Install Keymaker SSH auth module. Run this command on each EC2 host that will use Keymaker to authenticate users.",
@@ -60,6 +60,16 @@ parser_get_groups.add_argument("user", help="User to get groups for")
 
 parser_list_keys = subparsers.add_parser("list_keys", help="Get public SSH keys for a given or current IAM/SSH user.")
 parser_list_keys.add_argument("--user", help="User to get SSH keys for")
+
+parser_disable_key = subparsers.add_parser("disable_key", help="Disable a given public SSH key for a given or current IAM/SSH user.")
+parser_disable_key.add_argument("ssh_public_key_id", help="ID of SSH key to disable")
+parser_disable_key.add_argument("--user", help="User to edit SSH key for")
+parser_enable_key = subparsers.add_parser("enable_key", help="Enable a given public SSH key for a given or current IAM/SSH user.")
+parser_enable_key.add_argument("ssh_public_key_id", help="ID of SSH key to enable")
+parser_enable_key.add_argument("--user", help="User to edit SSH key for")
+parser_delete_key = subparsers.add_parser("delete_key", help="Delete a given public SSH key for a given or current IAM/SSH user.")
+parser_delete_key.add_argument("ssh_public_key_id", help="ID of SSH key to enable")
+parser_delete_key.add_argument("--user", help="User to edit SSH key for")
 
 if len(sys.argv) == 1:
     parser.print_help()
