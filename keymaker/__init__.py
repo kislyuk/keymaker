@@ -10,15 +10,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from io import open
 
-import os, sys, json, time, logging, subprocess, pwd
-
-import boto3
-from botocore.exceptions import ClientError
+import os, sys, json, time, logging, subprocess, pwd, hashlib
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logging.getLogger("botocore.vendored.requests").setLevel(logging.DEBUG)
+
+import boto3
+from botocore.exceptions import ClientError
 
 # TODO: integration with watchtower
 
@@ -218,10 +216,22 @@ def configure(args):
 
 def get_authorized_keys(args):
     iam = boto3.client("iam")
-    for key_desc in iam.list_ssh_public_keys(UserName=args.user)["SSHPublicKeys"]:
-        key = iam.get_ssh_public_key(UserName=args.user, SSHPublicKeyId=key_desc["SSHPublicKeyId"], Encoding="SSH")
-        if key["SSHPublicKey"]["Status"] == "Active":
-            print(key["SSHPublicKey"]["SSHPublicKeyBody"])
+    try:
+        for key_desc in iam.list_ssh_public_keys(UserName=args.user)["SSHPublicKeys"]:
+            key = iam.get_ssh_public_key(UserName=args.user, SSHPublicKeyId=key_desc["SSHPublicKeyId"], Encoding="SSH")
+            if key["SSHPublicKey"]["Status"] == "Active":
+                print(key["SSHPublicKey"]["SSHPublicKeyBody"])
+    except Exception as e:
+        err_exit("Error while retrieving IAM SSH keys for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
+
+def get_uid(args):
+    iam = boto3.resource("iam")
+    try:
+        user_id = iam.User(args.user).user_id
+        uid = 2000 + (int.from_bytes(hashlib.sha256(user_id.encode()).digest()[-2:], byteorder=sys.byteorder) // 2)
+        print(uid)
+    except Exception as e:
+        err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
 def install(args):
     user = args.user or "keymaker"
@@ -238,6 +248,7 @@ def install(args):
         print('keymaker get_authorized_keys "$@"', file=fh)
     subprocess.check_call(["chown", "root", authorized_keys_script_path])
     subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])
+    subprocess.check_call(["chmod", "a+x", authorized_keys_script_path])
 
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config_lines = fh.read().splitlines()

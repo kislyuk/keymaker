@@ -9,17 +9,17 @@ See https://github.com/kislyuk/keymaker for documentation.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os, sys, argparse
+import os, sys, argparse, logging
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from keymaker.printing import KEYMAKER_LOGO
 
-from keymaker import configure, upload, install, get_authorized_keys
+from keymaker import configure, upload, install, get_authorized_keys, get_uid, logger
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
-
+parser.add_argument("--debug", action="store_true")
 subparsers = parser.add_subparsers(dest="command")
 
 parser_configure = subparsers.add_parser("configure",
@@ -40,14 +40,23 @@ parser_install = subparsers.add_parser("install",
 parser_install.add_argument("--user", help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
 # action.completer = ...
 
-parser_get_authorized_keys = subparsers.add_parser("get_authorized_keys",
-                                                   help="Get authorized keys for a given IAM/SSH user",
-                                                   description="This command is used by sshd as AuthorizedKeysCommand when processing authentication requests.")
+parser_get_authorized_keys = subparsers.add_parser(
+    "get_authorized_keys",
+    help="Get authorized keys for a given IAM/SSH user. This command is used by sshd as AuthorizedKeysCommand when processing authentication requests."
+)
 parser_get_authorized_keys.add_argument("user", help="User to get authorized keys for")
+
+parser_get_uid = subparsers.add_parser(
+    "get_uid",
+    help="Get canonical UID for a given IAM/SSH user. This command is used internally by Keymaker when provisioning user accounts."
+)
+parser_get_uid.add_argument("user", help="User to get UID for")
 
 if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
 
 args = parser.parse_args()
+if args.debug:
+    logger.setLevel(logging.DEBUG)
 locals()[args.command](args)

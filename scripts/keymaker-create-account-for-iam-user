@@ -11,6 +11,8 @@ else
     # TODO: figure out how to display info banner
     # Verify that the IAM user exists.
     keymaker get_authorized_keys "$PAM_USER" > /dev/null
-    adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER"
+    adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER" --uid "$(keymaker get_uid '$PAM_USER')"
+    echo "$0: Your user account has been created on demand, but SSH will not know about it until you reconnect." > /dev/stderr
+    echo "$0: Connect with SSH again to log in to your account." > /dev/stderr
     exit $EX_TEMPFAIL
 fi
