@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from keymaker.printing import KEYMAKER_LOGO
 
-from keymaker import configure, upload, install, get_authorized_keys, get_uid, logger
+from keymaker import configure, upload, install, get_authorized_keys, get_uid, get_groups, list_keys, logger
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -48,9 +48,18 @@ parser_get_authorized_keys.add_argument("user", help="User to get authorized key
 
 parser_get_uid = subparsers.add_parser(
     "get_uid",
-    help="Get canonical UID for a given IAM/SSH user. This command is used internally by Keymaker when provisioning user accounts."
+    help="Get canonical UID for a given IAM/SSH user or group. This command is used internally by Keymaker when provisioning user accounts."
 )
 parser_get_uid.add_argument("user", help="User to get UID for")
+
+parser_get_groups = subparsers.add_parser(
+    "get_groups",
+    help="Get groups for a given IAM/SSH user. This command is used internally by Keymaker when provisioning user accounts."
+)
+parser_get_groups.add_argument("user", help="User to get groups for")
+
+parser_list_keys = subparsers.add_parser("list_keys", help="Get public SSH keys for a given or current IAM/SSH user.")
+parser_list_keys.add_argument("--user", help="User to get SSH keys for")
 
 if len(sys.argv) == 1:
     parser.print_help()

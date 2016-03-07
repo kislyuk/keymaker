@@ -224,12 +224,26 @@ def get_authorized_keys(args):
     except Exception as e:
         err_exit("Error while retrieving IAM SSH keys for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
+def aws_to_unix_id(i):
+    return 2000 + (int.from_bytes(hashlib.sha256(i.encode()).digest()[-2:], byteorder=sys.byteorder) // 2)
+
 def get_uid(args):
     iam = boto3.resource("iam")
     try:
         user_id = iam.User(args.user).user_id
-        uid = 2000 + (int.from_bytes(hashlib.sha256(user_id.encode()).digest()[-2:], byteorder=sys.byteorder) // 2)
+        uid = aws_to_unix_id(user_id)
         print(uid)
+    except Exception as e:
+        err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
+
+def get_groups(args):
+    iam_linux_group_prefix = "keymaker_"
+    iam = boto3.resource("iam")
+    try:
+        for group in iam.User(args.user).groups.all():
+            if group.name.startswith(iam_linux_group_prefix):
+                gid = aws_to_unix_id(group.group_id)
+                print(group.name[len(iam_linux_group_prefix):])
     except Exception as e:
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
@@ -317,6 +331,14 @@ def upload(args):
             logger.error('The current IAM user has filled their public SSH key quota. Delete keys with "aws iam list-ssh-public-keys; aws iam delete-ssh-public-key --user-name USER --ssh-public-key-id KEY_ID".')
         raise
 
+def list_keys(args):
+    iam = boto3.resource("iam")
+    if args.user:
+        user = iam.User(args.user)
+    else:
+        user = iam.CurrentUser().user
+    for key in iam.meta.client.list_ssh_public_keys(UserName=user.name)["SSHPublicKeys"]:
+        print(key)
 
     #    import paramiko
 #    for key in paramiko.agent.Agent().get_keys():
