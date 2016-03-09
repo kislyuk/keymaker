@@ -19,8 +19,9 @@ Principle of operation
 ----------------------
 
 Amazon Web Services `IAM <https://aws.amazon.com/iam/>`_ user accounts provide the ability to add SSH public keys to
-their metadata (up to 5 keys can be added; individual keys can be disabled). Keymaker provides an integrated way for a
-user to upload their public SSH key with ``keymaker upload_key``.
+their metadata (up to 5 keys can be added; individual keys can be disabled). Keymaker uses this metadata to authenticate
+SSH logins. Keymaker provides an integrated way for a user to upload their public SSH key to their IAM account
+with ``keymaker upload_key``.
 
 Run ``keymaker install`` on instances that you want your users to connect to. This installs three components:
 
@@ -33,7 +34,7 @@ Run ``keymaker install`` on instances that you want your users to connect to. Th
   an authorized IAM account exists with the same name, and creates the account on demand.
 
 * A cron job that runs on your instance once an hour and synchronizes IAM group membership information. Only IAM groups
-  that start with a configurable prefix (by default, ``keymaker_``) are synchronized as Linux groups.
+  whose names start with a configurable prefix (by default, ``keymaker_*``) are synchronized as Linux groups.
 
 As a result, users who connect to your instances over SSH are given access based on information centralized in your AWS
 account. Users must have an active IAM account with active matching SSH public keys in order for authentication to
