@@ -1,3 +1,7 @@
+Version 0.2.0 (2016-03-09)
+--------------------------
+- Cleanup and documentation improvements.
+
 Version 0.1.0 (2016-03-06)
 --------------------------
 - Complete work on first iteration of CodeDeploy-compatible SSH public key API.
