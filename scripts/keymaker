@@ -11,11 +11,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os, sys, argparse, logging
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import boto3, argcomplete
 
+from keymaker import (configure, install, get_authorized_keys, get_uid, get_groups, list_keys, upload_key, disable_key,
+                      enable_key, delete_key, logger)
 from keymaker.printing import KEYMAKER_LOGO
-
-from keymaker import configure, install, get_authorized_keys, get_uid, get_groups, list_keys, upload_key, disable_key, enable_key, delete_key, logger
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -23,22 +23,21 @@ parser.add_argument("--debug", action="store_true")
 subparsers = parser.add_subparsers(dest="command")
 
 parser_configure = subparsers.add_parser("configure",
-                                         help="Perform one-time setup on an AWS account. Run this command for each AWS account that will use Keymaker to authenticate users.",
-                                         description="TODO")
-#parser_configure.add_argument("--yes",
-#                          help='Assume a "yes" response to all prompts. Required if running non-interactively',
-#                          action="store_true")
+                                         help="Perform one-time setup on an AWS account. Run this command for each AWS account that will use Keymaker to authenticate users.")
 
 parser_upload_key = subparsers.add_parser("upload_key",
                                           help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.",
                                           description="By default, an SSH public key is extracted from the output of ``ssh-add``. You can also specify an existing SSH key file with --identity.")
 parser_upload_key.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
+user_arg = parser_upload_key.add_argument("--user",
+                                       help="IAM user name to upload the key for. The defaut is to upload for the current IAM user.")
+user_arg.completer = lambda prefix, **kwargs: [u.name for u in boto3.resource("iam").users.all() if u.name.startswith(prefix)]
 
 parser_install = subparsers.add_parser("install",
                                        help="Install Keymaker SSH auth module. Run this command on each EC2 host that will use Keymaker to authenticate users.",
                                        description="TODO")
-parser_install.add_argument("--user", help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
-# action.completer = ...
+parser_install.add_argument("--user",
+                            help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
 
 parser_get_authorized_keys = subparsers.add_parser(
     "get_authorized_keys",
@@ -75,6 +74,7 @@ if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
 
+argcomplete.autocomplete(parser)
 args = parser.parse_args()
 if args.debug:
     logger.setLevel(logging.DEBUG)

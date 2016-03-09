@@ -18,7 +18,37 @@ Installation
 Principle of operation
 ----------------------
 
+Amazon Web Services `IAM <https://aws.amazon.com/iam/>`_ user accounts provide the ability to add SSH public keys to
+their metadata (up to 5 keys can be added; individual keys can be disabled). Keymaker provides an integrated way for a
+user to upload their public SSH key with ``keymaker upload_key``.
+
+Run ``keymaker install`` on instances that you want your users to connect to. This installs three components:
+
+* An ``AuthorizedKeysCommand`` sshd configuration directive, which acts as a login event hook and dynamically retrieves
+  public SSH keys from IAM for the user logging in, using the default `boto3 <https://github.com/boto/boto3>`_
+  credentials (which default to the instance's IAM role credentials).
+
+* A ``pam_exec`` PAM configuration directive, which causes sshd to call ``keymaker-create-account-for-iam-user`` early
+  in the login process. This script detects if a Linux user account does not exist for the authenticating principal but
+  an authorized IAM account exists with the same name, and creates the account on demand.
+
+* A cron job that runs on your instance once an hour and synchronizes IAM group membership information. Only IAM groups
+  that start with a configurable prefix (by default, ``keymaker_``) are synchronized as Linux groups.
+
+As a result, users who connect to your instances over SSH are given access based on information centralized in your AWS
+account. Users must have an active IAM account with active matching SSH public keys in order for authentication to
+succeed. Users' UIDs and group memberships are also synchronized across your instances, so any UID-based checks or
+group-based privileges remain current as well.
+
 TODO
+----
+
+- integration with watchtower and/or cloudtrail
+- when setting up a user, warn about any UID/GID collisions
+- warn or fail on any UID or custom GID hash mismatches
+- cron mode for group synchronization
+- include docs for installing daemon via userdata/cloud-init
+
 
 Authors
 -------
