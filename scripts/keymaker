@@ -70,11 +70,12 @@ parser_delete_key = subparsers.add_parser("delete_key", help="Delete a given pub
 parser_delete_key.add_argument("ssh_public_key_id", help="ID of SSH key to enable")
 parser_delete_key.add_argument("--user", help="User to edit SSH key for")
 
+argcomplete.autocomplete(parser)
+
 if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
 
-argcomplete.autocomplete(parser)
 args = parser.parse_args()
 if args.debug:
     logger.setLevel(logging.DEBUG)
