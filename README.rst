@@ -41,6 +41,10 @@ account. Users must have an active IAM account with active matching SSH public k
 succeed. Users' UIDs and group memberships are also synchronized across your instances, so any UID-based checks or
 group-based privileges remain current as well.
 
+EFS integration
+---------------
+Email kislyuk@gmail.com for details on the EFS integration.
+
 TODO
 ----
 
@@ -73,11 +77,11 @@ Licensed under the terms of the `Apache License, Version 2.0 <http://www.apache.
         :target: https://travis-ci.org/kislyuk/keymaker
 .. image:: https://coveralls.io/repos/kislyuk/keymaker/badge.svg?branch=master
         :target: https://coveralls.io/r/kislyuk/keymaker?branch=master
-.. image:: https://pypip.in/version/keymaker/badge.svg
+.. image:: https://img.shields.io/pypi/v/keymaker.svg
         :target: https://pypi.python.org/pypi/keymaker
-.. image:: https://pypip.in/download/keymaker/badge.svg
+.. image:: https://img.shields.io/pypi/dm/keymaker.svg
         :target: https://pypi.python.org/pypi/keymaker
-.. image:: https://pypip.in/py_versions/keymaker/badge.svg
+.. image:: https://img.shields.io/pypi/l/keymaker.svg
         :target: https://pypi.python.org/pypi/keymaker
 .. image:: https://readthedocs.org/projects/keymaker/badge/?version=latest
         :target: https://keymaker.readthedocs.org/
