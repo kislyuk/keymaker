@@ -15,6 +15,8 @@ Installation
     pip install keymaker
     keymaker install
 
+On instances running keymaker, sshd needs read-only access to IAM (most easily done through an instance profile/IAM role).
+
 Principle of operation
 ----------------------
 
