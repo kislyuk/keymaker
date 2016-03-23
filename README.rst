@@ -10,12 +10,22 @@ Directory** authentication.
 
 Installation
 ------------
-::
+Run ``pip install keymaker``.
 
-    pip install keymaker
-    keymaker install
+On instances that accept SSH logins:
+- Run ``keymaker install``.
+- Ensure processes launched by sshd have read-only access to IAM (most easily done through an instance profile/IAM role).
 
-On instances running keymaker, sshd needs read-only access to IAM (most easily done through an instance profile/IAM role).
+Usage
+-----
+Run ``keymaker`` with no arguments to get usage information. In client mode (running on a computer that you will connect
+from), you can run ``keymaker <subcommand>``, where subcommand is::
+
+    upload_key          Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.
+    list_keys           Get public SSH keys for a given or current IAM/SSH user.
+    disable_key         Disable a given public SSH key for a given or current IAM/SSH user.
+    enable_key          Enable a given public SSH key for a given or current IAM/SSH user.
+    delete_key          Delete a given public SSH key for a given or current IAM/SSH user.
 
 Principle of operation
 ----------------------
