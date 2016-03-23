@@ -1,3 +1,7 @@
+Version 0.2.1 (2016-03-09)
+--------------------------
+- Further cleanup and documentation improvements.
+
 Version 0.2.0 (2016-03-09)
 --------------------------
 - Cleanup and documentation improvements.
