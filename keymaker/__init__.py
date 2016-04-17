@@ -97,6 +97,7 @@ def install(args):
     with open("/etc/pam.d/sshd", "w") as fh:
         for line in pam_config_lines:
             print(line, file=fh)
+    # TODO: cron job for group sync
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
@@ -178,8 +179,3 @@ def delete_key(args):
     #print("Select an SSH key pair to use when connecting to EC2 instances. The public key will be saved to your IAM user account. The private key will remain on this computer.")
     #for identity in subprocess.check
     # TODO: enum regions
-#    ssh_key = new_ssh_key()
-    #user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=public_key(ssh_key))
-#    ssh_key.write_private_key_file(get_key_path("keymaker"))
-#    for key in user.meta.client.list_ssh_public_keys(UserName=user.name)["SSHPublicKeys"]:
-#        print(user, key, user.meta.client.get_ssh_public_key(UserName=user.name, SSHPublicKeyId=key["SSHPublicKeyId"], Encoding="SSH")["SSHPublicKey"]["SSHPublicKeyBody"])
