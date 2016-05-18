@@ -54,13 +54,15 @@ def from_bytes(data, big_endian=False):
 
 def aws_to_unix_id(aws_key_id):
     """Converts a AWS Key ID into a UID"""
-    if int(sys.version[0]) == 3:
+    USING_PYTHON2 = True if sys.version_info < (3, 0) else False
+    if USING_PYTHON2:
+        return 2000 + int(
+            from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:]) // 2)
+    else:
         return 2000 + (
             int.from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:],
             byteorder=sys.byteorder) // 2)
-    else:
-        return 2000 + int(
-            from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:]) // 2)
+
 
 def get_uid(args):
     iam = boto3.resource("iam")
