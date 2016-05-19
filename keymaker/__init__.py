@@ -2,7 +2,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from io import open
 
-import os, sys, json, time, logging, subprocess, pwd, hashlib
+import os
+import sys
+import json
+import time
+import logging
+import subprocess
+import pwd
+import hashlib
+import codecs
 from collections import namedtuple
 
 logging.basicConfig(level=logging.ERROR)
@@ -33,8 +41,28 @@ def get_authorized_keys(args):
     except Exception as e:
         err_exit("Error while retrieving IAM SSH keys for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
-def aws_to_unix_id(i):
-    return 2000 + (int.from_bytes(hashlib.sha256(i.encode()).digest()[-2:], byteorder=sys.byteorder) // 2)
+def from_bytes(data, big_endian=False):
+    """Used on Python 2 to handle int.from_bytes"""
+    if isinstance(data, str):
+        data = bytearray(data)
+    if big_endian:
+        data = reversed(data)
+    num = 0
+    for offset, byte in enumerate(data):
+        num += byte << (offset * 8)
+    return num
+
+def aws_to_unix_id(aws_key_id):
+    """Converts a AWS Key ID into a UID"""
+    USING_PYTHON2 = True if sys.version_info < (3, 0) else False
+    if USING_PYTHON2:
+        return 2000 + int(
+            from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:]) // 2)
+    else:
+        return 2000 + (
+            int.from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:],
+            byteorder=sys.byteorder) // 2)
+
 
 def get_uid(args):
     iam = boto3.resource("iam")
