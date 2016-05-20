@@ -2,7 +2,7 @@ Keymaker: Lightweight SSH key management on AWS EC2
 ===================================================
 
 .. image:: /keymaker.jpg?raw=true
-   :scale: 25 %
+   :width: 100px
    :alt: Keymaker
    :align: right
 
