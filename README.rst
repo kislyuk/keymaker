@@ -1,6 +1,12 @@
 Keymaker: Lightweight SSH key management on AWS EC2
 ===================================================
-![Keymaker](/keymaker.jpg?raw=true "Keymaker")
+
+.. image:: /keymaker.jpg?raw=true
+   :height: 100px
+   :width: 200 px
+   :scale: 50 %
+   :alt: Keymaker
+   :align: left
 
 Keymaker is **the missing link between SSH and IAM accounts on Amazon AWS**. It's a stateless synchronization engine
 that securely manages the process of SSH public key sharing and verification, user and group synchronization, and home
