@@ -19,6 +19,7 @@ setup(
     scripts=glob.glob('scripts/*'),
     platforms=['MacOS X', 'Posix'],
     include_package_data=True,
+    test_suite='test',
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
