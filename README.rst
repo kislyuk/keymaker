@@ -1,5 +1,6 @@
 Keymaker: Lightweight SSH key management on AWS EC2
 ===================================================
+![Keymaker](/keymaker.jpg?raw=true "Keymaker")
 
 Keymaker is **the missing link between SSH and IAM accounts on Amazon AWS**. It's a stateless synchronization engine
 that securely manages the process of SSH public key sharing and verification, user and group synchronization, and home
@@ -54,6 +55,10 @@ As a result, users who connect to your instances over SSH are given access based
 account. Users must have an active IAM account with active matching SSH public keys in order for authentication to
 succeed. Users' UIDs and group memberships are also synchronized across your instances, so any UID-based checks or
 group-based privileges remain current as well.
+
+Example: launching an instance with IAM read-only access
+--------------------------------------------------------
+TODO
 
 EFS integration
 ---------------
