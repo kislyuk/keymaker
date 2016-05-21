@@ -10,7 +10,7 @@ sys.path.append(
 import keymaker
 
 
-class MyTest(unittest.TestCase):
+class KeymakerTests(unittest.TestCase):
 
     key = 'AKIAIJLRCB5E7CGTDF5A'
 
