@@ -21,7 +21,7 @@ class KeymakerTests(unittest.TestCase):
         assert type(result) == long
 
     def test_aws_to_unix_id(self):
-        """Access key ID must always convert to teh same UID number"""
+        """Access key ID must always convert to the same UID number"""
         result = keymaker.aws_to_unix_id(self.key)
         assert result == 26594
         assert type(result) == int
