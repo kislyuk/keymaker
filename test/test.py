@@ -25,3 +25,6 @@ class KeymakerTests(unittest.TestCase):
         result = keymaker.aws_to_unix_id(self.key)
         assert result == 26594
         assert type(result) == int
+
+if __name__ == "__main__":
+    unittest.main()
