@@ -9,6 +9,7 @@ sys.path.append(
 
 import keymaker
 
+USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
 class KeymakerTests(unittest.TestCase):
 
@@ -16,7 +17,8 @@ class KeymakerTests(unittest.TestCase):
 
     def test_from_bytes(self):
         """Test the Python 2 version of int.from_bytes"""
-        result = keymaker.from_bytes(self.key)
+        from_bytes = keymaker.from_bytes if USING_PYTHON2 else int.from_bytes
+        result = from_bytes(self.key)
         assert result == 372272460710313033966036665003922315590817631041
         assert type(result) == long
 
