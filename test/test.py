@@ -15,7 +15,7 @@ class KeymakerTests(unittest.TestCase):
 
     key = 'AKIAIJLRCB5E7CGTDF5A'
 
-    @unittest.skipUnless(USING_PYTHON2)
+    @unittest.skipUnless(USING_PYTHON2, "Skipping Python 2 specific test")
     def test_from_bytes(self):
         """Test the Python 2 version of int.from_bytes"""
         result = keymaker.from_bytes(self.key)
