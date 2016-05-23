@@ -17,7 +17,7 @@ class KeymakerTests(unittest.TestCase):
 
     def test_from_bytes(self):
         """Test the Python 2 version of int.from_bytes"""
-        from_bytes = keymaker.from_bytes if USING_PYTHON2 else int.from_bytes
+        from_bytes = keymaker.from_bytes if USING_PYTHON2 else lambda x: int.from_bytes(x, byteorder=sys.byteorder)
         result = from_bytes(self.key)
         assert result == 372272460710313033966036665003922315590817631041
         assert type(result) == long
