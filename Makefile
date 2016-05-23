@@ -9,7 +9,7 @@ lint:
 	./setup.py flake8
 
 test: env lint
-	source env/bin/activate; ./test/test.py -v
+	source env/bin/activate; ./setup.py test -v
 
 release: lint docs
 	python setup.py sdist upload -s -i D2069255
