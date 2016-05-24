@@ -59,16 +59,6 @@ EFS integration
 ---------------
 Email kislyuk@gmail.com for details on the EFS integration.
 
-TODO
-----
-
-- integration with watchtower and/or cloudtrail
-- when setting up a user, warn about any UID/GID collisions
-- warn or fail on any UID or custom GID hash mismatches
-- cron mode for group synchronization
-- include docs for installing daemon via userdata/cloud-init
-
-
 Authors
 -------
 * Andrey Kislyuk

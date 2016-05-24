@@ -14,7 +14,7 @@ import os, sys, argparse, logging
 import boto3, argcomplete
 
 from keymaker import (configure, install, get_authorized_keys, get_uid, get_groups, list_keys, upload_key, disable_key,
-                      enable_key, delete_key, logger)
+                      enable_key, delete_key, sync_groups, logger)
 from keymaker.printing import KEYMAKER_LOGO
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
@@ -69,6 +69,11 @@ parser_enable_key.add_argument("--user", help="User to edit SSH key for")
 parser_delete_key = subparsers.add_parser("delete_key", help="Delete a given public SSH key for a given or current IAM/SSH user.")
 parser_delete_key.add_argument("ssh_public_key_id", help="ID of SSH key to enable")
 parser_delete_key.add_argument("--user", help="User to edit SSH key for")
+
+parser_sync_groups = subparsers.add_parser(
+    "sync_groups",
+    help="Sync IAM group memberships for IAM users with UNIX users/groups on this machine. This command is used internally by Keymaker; it is called periodically from a cron job."
+)
 
 argcomplete.autocomplete(parser)
 
