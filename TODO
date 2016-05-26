@@ -1,0 +1,16 @@
+TODO
+----
+
+- integration with watchtower and/or cloudtrail
+- when setting up a user, warn about any UID/GID collisions
+- warn or fail on any UID or custom GID hash mismatches
+- cron mode for group synchronization
+- include docs for installing daemon via userdata/cloud-init
+- enum regions; multi-region ops
+  
+for key in paramiko.agent.Agent().get_keys(): print(key.get_name() + " " + key.get_base64(), dir(key), key.__dict__)
+
+print("Select an SSH key pair to use when connecting to EC2 instances. The public key will be saved to your IAM user account. The private key will remain on this computer.")
+
+for identity in subprocess.check:
+    ...

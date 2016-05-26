@@ -11,9 +11,10 @@ import subprocess
 import pwd
 import hashlib
 import codecs
+import grp
 from collections import namedtuple
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import boto3
@@ -125,7 +126,9 @@ def install(args):
     with open("/etc/pam.d/sshd", "w") as fh:
         for line in pam_config_lines:
             print(line, file=fh)
-    # TODO: cron job for group sync
+
+    with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
+        print("* * * * * root /usr/local/bin/keymaker sync_groups", file=fh)
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
@@ -202,8 +205,32 @@ def delete_key(args):
         user = iam.CurrentUser().user
     print(iam.meta.client.delete_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id))
 
-#    for key in paramiko.agent.Agent().get_keys():
-#        print(key.get_name() + " " + key.get_base64(), dir(key), key.__dict__)
-    #print("Select an SSH key pair to use when connecting to EC2 instances. The public key will be saved to your IAM user account. The private key will remain on this computer.")
-    #for identity in subprocess.check
-    # TODO: enum regions
+def sync_groups(args):
+    from pwd import getpwnam
+    iam = boto3.resource("iam")
+    for group in iam.groups.filter(PathPrefix="/keymaker/"):
+        if not group.name.startswith("keymaker-"):
+            continue
+        logger.info("Syncing IAM group %s", group.name)
+        unix_group_name = group.name[len("keymaker-"):]
+        try:
+            unix_group = grp.getgrnam(unix_group_name)
+        except KeyError:
+            logger.info("Provisioning group %s from IAM", unix_group_name)
+            subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])
+            unix_group = grp.getgrnam(unix_group_name)
+        user_names_in_iam_group = [user.name for user in group.users.all()]
+        for user in user_names_in_iam_group:
+            try:
+                uid = pwd.getpwnam(user).pw_uid
+                if uid < 2000:
+                    raise ValueError(uid)
+            except Exception:
+                logger.error("User %s is not provisioned or not managed by keymaker, skipping", user)
+                continue
+            if user not in unix_group.gr_mem:
+                logger.info("Adding user %s to group %s", user, unix_group_name)
+                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])
+        for unix_user_name in unix_group.gr_mem:
+            if unix_user_name not in user_names_in_iam_group:
+                subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])
