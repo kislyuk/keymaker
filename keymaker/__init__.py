@@ -222,15 +222,15 @@ def sync_groups(args):
         user_names_in_iam_group = [user.name for user in group.users.all()]
         for user in user_names_in_iam_group:
             try:
-                uid = pwd.getpwnam(user.name).pw_uid
+                uid = pwd.getpwnam(user).pw_uid
                 if uid < 2000:
                     raise ValueError(uid)
             except Exception:
                 logger.error("User %s is not provisioned or not managed by keymaker, skipping", user)
                 continue
-            if user.name not in unix_group.gr_mem:
-                logger.info("Adding user %s to group %s", user.name, unix_group_name)
-                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user.name])
+            if user not in unix_group.gr_mem:
+                logger.info("Adding user %s to group %s", user, unix_group_name)
+                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])
         for unix_user_name in unix_group.gr_mem:
             if unix_user_name not in user_names_in_iam_group:
-                subprocess.check_call(["gpasswd", "--delete", user.name, unix_group_name])
+                subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])
