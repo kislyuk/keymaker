@@ -215,7 +215,7 @@ def sync_groups(args):
         try:
             unix_group = grp.getgrnam(unix_group_name)
         except KeyError:
-            logger.info("Provisioning group %s from IAM", user.name, unix_group_name)
+            logger.info("Provisioning group %s from IAM", unix_group_name)
             subprocess.check_call(["groupadd", "--gid", aws_to_unix_id(group.group_id), unix_group_name])
         user_names_in_iam_group = [user.name for user in group.users.all()]
         for user in user_names_in_iam_group:
