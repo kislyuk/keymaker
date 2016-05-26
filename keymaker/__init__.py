@@ -222,7 +222,7 @@ def sync_groups(args):
         user_names_in_iam_group = [user.name for user in group.users.all()]
         for user in user_names_in_iam_group:
             try:
-                uid = pwd.getpwnam(user.name)
+                uid = pwd.getpwnam(user.name).pw_uid
                 if uid < 2000:
                     raise ValueError(uid)
             except Exception:
