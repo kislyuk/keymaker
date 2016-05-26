@@ -14,7 +14,7 @@ import codecs
 import grp
 from collections import namedtuple
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import boto3
@@ -211,6 +211,7 @@ def sync_groups(args):
     for group in iam.groups.filter(PathPrefix="/keymaker/"):
         if not group.name.startswith("keymaker-"):
             continue
+        logger.info("Syncing IAM group %s", group.name)
         unix_group_name = group.name[len("keymaker-"):]
         try:
             unix_group = grp.getgrnam(unix_group_name)
