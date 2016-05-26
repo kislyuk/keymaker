@@ -226,7 +226,7 @@ def sync_groups(args):
                 if uid < 2000:
                     raise ValueError(uid)
             except Exception:
-                logger.error("User %s is not provisioned or not managed by keymaker, skipping", user)
+                logger.warn("User %s is not provisioned or not managed by keymaker, skipping", user)
                 continue
             if user not in unix_group.gr_mem:
                 logger.info("Adding user %s to group %s", user, unix_group_name)
