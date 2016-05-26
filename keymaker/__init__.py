@@ -11,6 +11,7 @@ import subprocess
 import pwd
 import hashlib
 import codecs
+import grp
 from collections import namedtuple
 
 logging.basicConfig(level=logging.ERROR)
