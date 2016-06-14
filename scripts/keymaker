@@ -30,7 +30,7 @@ parser_upload_key = subparsers.add_parser("upload_key",
                                           description="By default, an SSH public key is extracted from the output of ``ssh-add``. You can also specify an existing SSH key file with --identity.")
 parser_upload_key.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
 user_arg = parser_upload_key.add_argument("--user",
-                                       help="IAM user name to upload the key for. The defaut is to upload for the current IAM user.")
+                                          help="IAM user name to upload the key for. The defaut is to upload for the current IAM user.")
 user_arg.completer = lambda prefix, **kwargs: [u.name for u in boto3.resource("iam").users.all() if u.name.startswith(prefix)]
 
 parser_install = subparsers.add_parser("install",

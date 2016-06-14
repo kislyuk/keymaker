@@ -18,8 +18,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-import boto3
-from botocore.exceptions import ClientError
+import boto3  # noqa
+from botocore.exceptions import ClientError  # noqa
+
+USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
 class ARN(namedtuple("ARN", "partition service region account resource")):
     def __str__(self):
@@ -56,15 +58,11 @@ def from_bytes(data, big_endian=False):
 
 def aws_to_unix_id(aws_key_id):
     """Converts a AWS Key ID into a UID"""
-    USING_PYTHON2 = True if sys.version_info < (3, 0) else False
+    uid_bytes = hashlib.sha256(aws_key_id.encode()).digest()[-2:]
     if USING_PYTHON2:
-        return 2000 + int(
-            from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:]) // 2)
+        return 2000 + int(from_bytes(uid_bytes) // 2)
     else:
-        return 2000 + (
-            int.from_bytes(hashlib.sha256(aws_key_id.encode()).digest()[-2:],
-            byteorder=sys.byteorder) // 2)
-
+        return 2000 + (int.from_bytes(uid_bytes, byteorder=sys.byteorder) // 2)
 
 def get_uid(args):
     iam = boto3.resource("iam")
@@ -81,7 +79,7 @@ def get_groups(args):
     try:
         for group in iam.User(args.user).groups.all():
             if group.name.startswith(iam_linux_group_prefix):
-                gid = aws_to_unix_id(group.group_id)
+                gid = aws_to_unix_id(group.group_id)  # noqa
                 print(group.name[len(iam_linux_group_prefix):])
     except Exception as e:
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
@@ -152,14 +150,15 @@ def select_ssh_public_key(identity=None):
         try:
             keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
             if len(keys) > 1:
-                exit('Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
+                exit('Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')  # noqa
             return keys[0]
         except subprocess.CalledProcessError:
             default_path = os.path.expanduser("~/.ssh/id_rsa.pub")
             if os.path.exists(default_path):
-                logger.warning('Using {} as your SSH key. If this is not what you want, specify one with --identity or load it with ssh-add'.format(default_path))
+                msg = 'Using {} as your SSH key. If this is not what you want, specify one with --identity or load it with ssh-add'  # noqa
+                logger.warning(msg.format(default_path))
                 return load_ssh_public_key(default_path)
-            exit('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')
+            exit('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')  # noqa
 
 def upload_key(args):
     ssh_public_key = select_ssh_public_key(args.identity)
@@ -172,7 +171,7 @@ def upload_key(args):
         user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") == "LimitExceeded":
-            logger.error('The current IAM user has filled their public SSH key quota. Delete keys with "keymaker list_keys" and "keymaker delete_key".')
+            logger.error('The current IAM user has filled their public SSH key quota. Delete keys with "keymaker list_keys" and "keymaker delete_key".')  # noqa
         raise
 
 def list_keys(args):
@@ -190,7 +189,9 @@ def update_key(args, status):
         user = iam.User(args.user)
     else:
         user = iam.CurrentUser().user
-    return iam.meta.client.update_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id, Status=status)
+    return iam.meta.client.update_ssh_public_key(UserName=user.name,
+                                                 SSHPublicKeyId=args.ssh_public_key_id,
+                                                 Status=status)
 
 def disable_key(args):
     print(update_key(args, status="Inactive"))
