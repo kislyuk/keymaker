@@ -83,8 +83,6 @@ Licensed under the terms of the `Apache License, Version 2.0 <http://www.apache.
         :target: https://coveralls.io/r/kislyuk/keymaker?branch=master
 .. image:: https://img.shields.io/pypi/v/keymaker.svg
         :target: https://pypi.python.org/pypi/keymaker
-.. image:: https://img.shields.io/pypi/dm/keymaker.svg
-        :target: https://pypi.python.org/pypi/keymaker
 .. image:: https://img.shields.io/pypi/l/keymaker.svg
         :target: https://pypi.python.org/pypi/keymaker
 .. image:: https://readthedocs.org/projects/keymaker/badge/?version=latest
