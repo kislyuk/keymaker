@@ -1,3 +1,8 @@
+Changes for v0.3.0 (2016-09-25)
+===============================
+
+-  Python 2.7 support
+
 Version 0.2.1 (2016-03-09)
 --------------------------
 - Further cleanup and documentation improvements.
