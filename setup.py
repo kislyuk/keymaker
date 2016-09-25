@@ -7,7 +7,7 @@ install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(
 
 setup(
     name='keymaker',
-    version="0.3.0",
+    version='0.3.2',
     url='https://github.com/kislyuk/keymaker',
     license='Apache Software License',
     author='Andrey Kislyuk',
