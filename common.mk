@@ -21,7 +21,7 @@ release:
 	$(eval RELEASES_API=https://api.github.com/repos/${REMOTE}/releases)
 	$(eval UPLOADS_API=https://uploads.github.com/repos/${REMOTE}/releases)
 	git clean -x --force ${CLEAN_DIRS}
-	sed -i -e "s/version=\([\'\"]\)[0-9]\+\.[0-9]\+\.[0-9]\+/version=\1$${TAG:1}/" setup.py
+	sed -i -e "s/version='[0-9]\+\.[0-9]\+\.[0-9]\+/version='$${TAG:1}/" setup.py
 	git add setup.py
 	TAG_MSG=$$(mktemp); \
 	    echo "# Changes for ${TAG} ($$(date +%Y-%m-%d))" > $$TAG_MSG; \
