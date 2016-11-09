@@ -207,6 +207,15 @@ def delete_key(args):
         user = iam.CurrentUser().user
     print(iam.meta.client.delete_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id))
 
+def is_managed(unix_username):
+    try:
+        uid = pwd.getpwnam(unix_username).pw_uid
+        if uid < 2000:
+            raise ValueError(uid)
+    except Exception:
+        return False
+    return True
+
 def sync_groups(args):
     from pwd import getpwnam
     iam = boto3.resource("iam")
@@ -223,16 +232,13 @@ def sync_groups(args):
             unix_group = grp.getgrnam(unix_group_name)
         user_names_in_iam_group = [user.name for user in group.users.all()]
         for user in user_names_in_iam_group:
-            try:
-                uid = pwd.getpwnam(user).pw_uid
-                if uid < 2000:
-                    raise ValueError(uid)
-            except Exception:
+            if not is_managed(user):
                 logger.warn("User %s is not provisioned or not managed by keymaker, skipping", user)
                 continue
             if user not in unix_group.gr_mem:
                 logger.info("Adding user %s to group %s", user, unix_group_name)
                 subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])
-        for unix_user_name in unix_group.gr_mem:
+        for unix_user_name in filter(is_managed, unix_group.gr_mem):
             if unix_user_name not in user_names_in_iam_group:
+                logger.info("Removing user %s from group %s", unix_user_name, unix_group_name)
                 subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])
