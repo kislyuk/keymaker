@@ -29,6 +29,8 @@ class ARN(namedtuple("ARN", "partition service region account resource")):
 
 ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
+iam_linux_group_prefix = "keymaker_"
+
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
 
@@ -74,7 +76,6 @@ def get_uid(args):
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
 def get_groups(args):
-    iam_linux_group_prefix = "keymaker_"
     iam = boto3.resource("iam")
     try:
         for group in iam.User(args.user).groups.all():
@@ -219,11 +220,11 @@ def is_managed(unix_username):
 def sync_groups(args):
     from pwd import getpwnam
     iam = boto3.resource("iam")
-    for group in iam.groups.filter(PathPrefix="/keymaker/"):
-        if not group.name.startswith("keymaker-"):
+    for group in iam.groups.all():
+        if not group.name.startswith(iam_linux_group_prefix):
             continue
         logger.info("Syncing IAM group %s", group.name)
-        unix_group_name = group.name[len("keymaker-"):]
+        unix_group_name = group.name[len(iam_linux_group_prefix):]
         try:
             unix_group = grp.getgrnam(unix_group_name)
         except KeyError:
