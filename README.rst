@@ -15,7 +15,7 @@ Run ``pip install keymaker``.
 On instances that accept SSH logins:
 
 - Run ``keymaker install``.
-- Ensure processes launched by sshd have read-only access to IAM (most easily done by launching the instance with an
+- Ensure processes launched by sshd have read access to IAM (most easily done by launching the instance with an
   instance profile/IAM role that has the IAMReadOnlyAccess policy attached).
 
 Usage
