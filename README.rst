@@ -47,8 +47,9 @@ Run ``keymaker install`` on instances that you want your users to connect to. Th
   in the login process. This script detects if a Linux user account does not exist for the authenticating principal but
   an authorized IAM account exists with the same name, and creates the account on demand.
 
-* A cron job that runs on your instance once an hour and synchronizes IAM group membership information. Only IAM groups
-  whose names start with a configurable prefix (by default, ``keymaker_*``) are synchronized as Linux groups.
+* A `cron job <https://en.wikipedia.org/wiki/Cron>`_ that runs on your instance once an hour and synchronizes IAM group
+  membership information. Only IAM groups whose names start with a configurable prefix (by default, ``keymaker_*``) are
+  synchronized as Linux groups.
 
 As a result, users who connect to your instances over SSH are given access based on information centralized in your AWS
 account. Users must have an active IAM account with active matching SSH public keys in order for authentication to
