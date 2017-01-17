@@ -18,6 +18,8 @@ On instances that accept SSH logins:
 - Ensure processes launched by sshd have read access to IAM (most easily done by launching the instance with an
   instance profile/IAM role that has the IAMReadOnlyAccess policy attached).
 
+Keymaker requires OpenSSH v6.2+, provided by Ubuntu 14.04+ and RHEL7+.
+
 Usage
 -----
 Run ``keymaker`` with no arguments to get usage information. In client mode (running on a computer that you will connect
