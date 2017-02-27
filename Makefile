@@ -1,13 +1,11 @@
-env: setup.py
-	virtualenv env
-	env/bin/pip install .
-	env/bin/pip list --outdated
+test_deps:
+	pip install coverage flake8 wheel
 
-lint:
+lint: test_deps
 	./setup.py flake8
 
-test: env lint
-	source env/bin/activate; ./setup.py test -v
+test: test_deps lint
+	coverage run --source=$$(python setup.py --name) ./test/test.py
 
 init_docs:
 	cd docs; sphinx-quickstart
@@ -15,10 +13,15 @@ init_docs:
 docs:
 	$(MAKE) -C docs html
 
-install:
-	python3 setup.py bdist_wheel
-	pip3 install --upgrade dist/*.whl
+install: clean
+	pip install wheel
+	python setup.py bdist_wheel
+	pip install --upgrade dist/*.whl
 
-.PHONY: test release docs lint
+clean:
+	-rm -rf build dist
+	-rm -rf *.egg-info
+
+.PHONY: lint test test_deps docs install clean
 
 include common.mk
