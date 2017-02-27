@@ -82,6 +82,8 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 args = parser.parse_args()
-if args.debug:
-    logger.setLevel(logging.DEBUG)
+
+logging.basicConfig(level=logging.ERROR)
+logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+
 locals()[args.command](args)

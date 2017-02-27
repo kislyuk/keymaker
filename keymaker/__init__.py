@@ -19,9 +19,12 @@ from botocore.exceptions import ClientError  # noqa
 
 USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
+logger = logging.getLogger(__name__)
+
 class ARN(namedtuple("ARN", "partition service region account resource")):
     def __str__(self):
         return ":".join(["arn"] + list(self))
+
 
 ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
