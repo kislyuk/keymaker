@@ -58,6 +58,14 @@ account. Users must have an active IAM account with active matching SSH public k
 succeed. Users' UIDs and group memberships are also synchronized across your instances, so any UID-based checks or
 group-based privileges remain current as well.
 
+Security considerations
+-----------------------
+Integrating IAM user identities with Unix user identities has implications for your security threat model. With Keymaker, a
+principal with the ability to set SSH public keys on an IAM user account can impersonate that user when logging in to an EC2
+instance. As an example, this can expand the scope of a compromised AWS secret key. You can mitigate this threat with an IAM
+policy restricting access to the
+[UploadSSHPublicKey](http://docs.aws.amazon.com/IAM/latest/APIReference/API_UploadSSHPublicKey.html) method.
+
 EFS integration
 ---------------
 Email kislyuk@gmail.com for details on the EFS integration.
