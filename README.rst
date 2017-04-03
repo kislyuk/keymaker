@@ -64,7 +64,7 @@ Integrating IAM user identities with Unix user identities has implications for y
 principal with the ability to set SSH public keys on an IAM user account can impersonate that user when logging in to an EC2
 instance. As an example, this can expand the scope of a compromised AWS secret key. You can mitigate this threat with an IAM
 policy restricting access to the
-[UploadSSHPublicKey](http://docs.aws.amazon.com/IAM/latest/APIReference/API_UploadSSHPublicKey.html) method.
+`UploadSSHPublicKey <http://docs.aws.amazon.com/IAM/latest/APIReference/API_UploadSSHPublicKey.html>`_ method.
 
 EFS integration
 ---------------
