@@ -1,22 +1,55 @@
-#!/bin/bash -e
+#!/bin/bash
+
+# TODO: what to do if /etc/ssh/sshd_config isn't the running SSHD config file
+# TODO: more graceful handling of login banner (this is a stub) - libssh?
+# TODO: test user/group creation on: Amazon Linux, Suse, CentOS
 
 EX_TEMPFAIL=75
 EX_NOPERM=77
 
-if getent passwd "$PAM_USER" >/dev/null 2>&1; then
-    # Terminate the PAM authentication stack. The SSH client will fail since the user didn't supply a valid public key.
-    exit $EX_NOPERM
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+SSHD_CONFIG="/etc/ssh/sshd_config"
+BANNER_FILE=`grep -e "^Banner." $SSHD_CONFIG | awk '{print $2}'`
+
+# Get the login banner
+if [ -e $BANNER_FILE ] ; then
+    BANNER=`cat $BANNER_FILE`
 else
-    # Create the user, then terminate the PAM authentication stack. The SSH client will fail, and the user will need to try again.
-    # TODO: figure out how to display info banner
-    # Verify that the IAM user exists.
-    keymaker get_authorized_keys "$PAM_USER" >/dev/null
+    BANNER=''
+fi
+
+create_account () {
     NEW_UID=$(keymaker get_uid "$PAM_USER")
     adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER" --uid "$NEW_UID"
-    for group in $(keymaker get_groups "$PAM_USER"); do
-        usermod --append --groups "$group" "$PAM_USER" || echo "$0: Error while adding user to group"
+    groups=`keymaker get_groups "$PAM_USER"`
+    for group in $groups ; do
+        getent group | egrep "^$group:" >/dev/null
+        if [ "$?" == "1" ] ; then
+            echo "Creating group: $group"
+            groupadd $group
+        fi
+        usermod --append --groups "$group" "$PAM_USER"
+        if [ "$?" != "0" ] ; then
+            echo "$0: Error while adding user to group $group"
+        fi
     done
     echo "Keymaker: Your user account has been replicated onto this host, but SSH will not recognize it until you reconnect."
     echo "Keymaker: Connect again to log in to your account."
-    exit $EX_TEMPFAIL
+}
+
+# Check for a local account first
+getent passwd "$PAM_USER" >/dev/null 2>&1
+if [ "$?" != "0" ] ; then
+
+    # If there is no local account then check for IAM keys
+    keymaker get_authorized_keys "$PAM_USER" >/dev/null 2>&1
+    if [ "$?" == "0" ] ; then
+        # Create the local account if keys are found in IAM
+        create_account
+        exit $EX_TEMPFAIL
+    else
+        # No local account and no remote keys fall through here
+        echo $BANNER
+        exit
+    fi
 fi
