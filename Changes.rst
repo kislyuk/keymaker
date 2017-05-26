@@ -1,3 +1,10 @@
+Changes for v0.4.3 (2017-05-25)
+===============================
+
+-  Make the SSH hook work with RHEL-based distributions (#16)
+
+-  Test and documentation improvements
+
 
 
 
