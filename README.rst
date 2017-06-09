@@ -15,7 +15,9 @@ Run ``pip install keymaker``.
 On instances that accept SSH logins:
 
 - Run ``keymaker install``.
-- Ensure processes launched by sshd have the IAM permissions iam:GetSSHPublicKey, iam:ListSSHPublicKeys, iam:GetUser, iam:ListGroups, and iam:ListGroupsForUser. The easiest way to do this is to use an Instance Profile and an IAM role.
+- Ensure processes launched by sshd have the IAM permissions iam:GetSSHPublicKey, iam:ListSSHPublicKeys, iam:GetUser,
+iam:ListGroups, and iam:ListGroupsForUser. The easiest way to do this is to use an Instance Profile and corresponding IAM
+role that has a policy attached enumerating these permissions. (You can also attach the IAMReadOnlyAccess managed policy.)
 
 Keymaker requires OpenSSH v6.2+, provided by Ubuntu 14.04+ and RHEL7+.
 
