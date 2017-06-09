@@ -14,9 +14,9 @@ else
     keymaker get_authorized_keys "$PAM_USER" >/dev/null
     NEW_UID=$(keymaker get_uid "$PAM_USER")
     if ! [ $(command -v useradd > /dev/null) ]; then
-        ${SUPATH}/useradd "$PAM_USER" --comment "$PAM_USER" --uid "$NEW_UID"
+        ${SUPATH}/useradd "$PAM_USER" --comment "$PAM_USER" --uid "$NEW_UID" --shell "/bin/bash" --create-home
     else
-        ${SUPATH}/adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER" --uid "$NEW_UID"
+        ${SUPATH}/adduser "$PAM_USER" --disabled-password --gecos "$PAM_USER" --uid "$NEW_UID" --shell "/bin/bash" --create-home
     fi
     for group in $(keymaker get_groups "$PAM_USER"); do
         ${SUPATH}/usermod --append --groups "$group" "$PAM_USER" || echo "$0: Error while adding user to group"
