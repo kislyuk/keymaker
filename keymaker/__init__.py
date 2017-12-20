@@ -5,6 +5,7 @@ from io import open
 import os
 import sys
 import json
+import re
 import time
 import logging
 import subprocess
@@ -44,7 +45,7 @@ def get_authorized_keys(args):
     try:
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
-        for role_desc_word in iam.get_role(RoleName=role_name)["Role"]["Description"].split():
+        for role_desc_word in re.split("[\s\,]+", iam.get_role(RoleName=role_name)["Role"]["Description"]):
             if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
                 config.update([role_desc_word.split("=")])
     except Exception as e:
