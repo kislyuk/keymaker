@@ -37,7 +37,32 @@ def configure(args):
     print("Will configure", args)
 
 def get_authorized_keys(args):
-    iam = boto3.client("iam")
+    session = boto3.Session()
+    iam = session.client("iam")
+    sts = session.client("sts")
+    config = {}
+    try:
+        role_arn = parse_arn(sts.get_caller_identity()["Arn"])
+        _, role_name, instance_id = role_arn.resource.split("/", 2)
+        for role_desc_word in iam.get_role(RoleName=role_name)["Role"]["Description"].split():
+            if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
+                config.update([role_desc_word.split("=")])
+    except Exception as e:
+        logger.warn(str(e))
+    if "keymaker_id_resolver_account" in config:
+        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
+                                   resource="role/" + config["keymaker_id_resolver_role"])
+        credentials = sts.assume_role(RoleArn=str(id_resolver_role_arn), RoleSessionName=__name__)["Credentials"]
+        session = boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
+                                aws_secret_access_key=credentials["SecretAccessKey"],
+                                aws_session_token=credentials["SessionToken"])
+        iam = session.client("iam")
+    if "keymaker_require_iam_group" in config:
+        groups = []
+        for page in iam.get_paginator('list_groups_for_user').paginate(UserName=args.user):
+            groups.extend([group["GroupName"] for group in page["Groups"]])
+        if config["keymaker_require_iam_group"] not in groups:
+            err_exit("User {u} is not in group {g}".format(u=args.user, g=config["keymaker_require_iam_group"]))
     try:
         for key_desc in iam.list_ssh_public_keys(UserName=args.user)["SSHPublicKeys"]:
             key = iam.get_ssh_public_key(UserName=args.user, SSHPublicKeyId=key_desc["SSHPublicKeyId"], Encoding="SSH")
