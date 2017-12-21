@@ -1,3 +1,15 @@
+Changes for v0.5.0 (2017-12-21)
+===============================
+
+-  Introduce cross-account auth capability and group membership
+   requirement (#29)
+
+-  PAM JIT user vivifier: Change 'requisite' to 'optional' (#22)
+
+-  Changing PAM behaviour to stop ugly output on first connection (#19)
+
+-  Adding shell and create-home to useradd command (#18)
+
 Changes for v0.4.3 (2017-05-25)
 ===============================
 
