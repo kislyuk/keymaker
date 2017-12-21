@@ -13,6 +13,7 @@ import pwd
 import hashlib
 import codecs
 import grp
+import shlex
 from collections import namedtuple
 
 import boto3  # noqa
@@ -47,7 +48,7 @@ def get_authorized_keys(args):
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         for role_desc_word in re.split("[\s\,]+", iam.get_role(RoleName=role_name)["Role"]["Description"]):
             if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
-                config.update([role_desc_word.split("=")])
+                config.update([shlex.split(role_desc_word)[0].split("=")])
     except Exception as e:
         logger.warn(str(e))
     if "keymaker_id_resolver_account" in config:
