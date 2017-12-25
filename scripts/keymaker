@@ -22,59 +22,72 @@ parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAK
 parser.add_argument("--debug", action="store_true")
 subparsers = parser.add_subparsers(dest="command")
 
-#parser_configure = subparsers.add_parser("configure",
-#                                         help="Perform one-time setup on an AWS account. Run this command for each AWS account that will use Keymaker to authenticate users.")
+parser_configure = subparsers.add_parser("configure",
+                                         help=("Perform one-time setup on an AWS account. Run this command for each "
+                                               "AWS account that will use Keymaker to authenticate users."))
 
 parser_upload_key = subparsers.add_parser("upload_key",
-                                          help="Upload public SSH key for a user. Run this command for each user who will be accessing EC2 hosts.",
-                                          description="By default, an SSH public key is extracted from the output of ``ssh-add``. You can also specify an existing SSH key file with --identity.")
-parser_upload_key.add_argument("--identity", help="An existing SSH key filename to get the public key from. Commonly stored in ~/.ssh with .pub or .pem extensions.")
+                                          help=("Upload public SSH key for a user. Run this command for each user who "
+                                                "will be accessing EC2 hosts."),
+                                          description=("By default, an SSH public key is extracted from the output of "
+                                                       "``ssh-add``. You can also specify an existing SSH key file "
+                                                       "with --identity."))
+parser_upload_key.add_argument("--identity",
+                               help=("An existing SSH key filename to get the public key from. Commonly stored in "
+                                     "~/.ssh with either a .pub or .pem file extension."))
 user_arg = parser_upload_key.add_argument("--user",
-                                          help="IAM user name to upload the key for. The defaut is to upload for the current IAM user.")
-user_arg.completer = lambda prefix, **kwargs: [u.name for u in boto3.resource("iam").users.all() if u.name.startswith(prefix)]
+                                          help=("IAM user name to upload the key for. The defaut is to upload for the "
+                                                "current IAM user."))
+user_arg.completer = lambda prefix, **kwargs: [u.name
+                                               for u in boto3.resource("iam").users.all()
+                                               if u.name.startswith(prefix)]
 
 parser_install = subparsers.add_parser("install",
-                                       help="Install Keymaker SSH auth module. Run this command on each EC2 host that will use Keymaker to authenticate users.",
-                                       description="TODO")
+                                       help=("Install Keymaker SSH auth module. Run this command on each EC2 host that "
+                                             "will use Keymaker to authenticate users."),
+                                       description=("This command updates the configuration of the SSH daemon to "
+                                                    "install a Keymaker login event handler. It also installs a cron "
+                                                    "job that periodically synchronizes IAM group membership."))
 parser_install.add_argument("--user",
-                            help="User that the SSH auth module will run as. If automatic user and group creation is enabled, this user must have the privileges to do so.")
+                            help=("User that the SSH auth module will run as. If automatic user and group creation is"
+                                  "enabled, this user must have the privileges to do so."))
 
-parser_get_authorized_keys = subparsers.add_parser(
-    "get_authorized_keys",
-    help="Get authorized keys for a given IAM/SSH user. This command is used by sshd as AuthorizedKeysCommand when processing authentication requests."
-)
+parser_get_authorized_keys = subparsers.add_parser("get_authorized_keys",
+                                                   help=("Get authorized keys for a given IAM/SSH user. This command "
+                                                         "is used by sshd as AuthorizedKeysCommand when processing "
+                                                         "authentication requests."))
 parser_get_authorized_keys.add_argument("user", help="User to get authorized keys for")
 
-parser_get_uid = subparsers.add_parser(
-    "get_uid",
-    help="Get canonical UID for a given IAM/SSH user or group. This command is used internally by Keymaker when provisioning user accounts."
-)
+parser_get_uid = subparsers.add_parser("get_uid",
+                                       help=("Get canonical UID for a given IAM/SSH user or group. This command is "
+                                             "used internally by Keymaker when provisioning user accounts."))
 parser_get_uid.add_argument("user", help="User to get UID for")
 
-parser_get_groups = subparsers.add_parser(
-    "get_groups",
-    help="Get groups for a given IAM/SSH user. This command is used internally by Keymaker when provisioning user accounts."
-)
+parser_get_groups = subparsers.add_parser("get_groups",
+                                          help=("Get groups for a given IAM/SSH user. This command is used internally "
+                                                "by Keymaker when provisioning user accounts."))
 parser_get_groups.add_argument("user", help="User to get groups for")
 
 parser_list_keys = subparsers.add_parser("list_keys", help="Get public SSH keys for a given or current IAM/SSH user.")
 parser_list_keys.add_argument("--user", help="User to get SSH keys for")
 
-parser_disable_key = subparsers.add_parser("disable_key", help="Disable a given public SSH key for a given or current IAM/SSH user.")
+parser_disable_key = subparsers.add_parser("disable_key",
+                                           help="Disable a given public SSH key for a given or current IAM/SSH user.")
 parser_disable_key.add_argument("ssh_public_key_id", help="ID of SSH key to disable")
 parser_disable_key.add_argument("--user", help="User to edit SSH key for")
-parser_enable_key = subparsers.add_parser("enable_key", help="Enable a given public SSH key for a given or current IAM/SSH user.")
+parser_enable_key = subparsers.add_parser("enable_key",
+                                          help="Enable a given public SSH key for a given or current IAM/SSH user.")
 parser_enable_key.add_argument("ssh_public_key_id", help="ID of SSH key to enable")
 parser_enable_key.add_argument("--user", help="User to edit SSH key for")
-parser_delete_key = subparsers.add_parser("delete_key", help="Delete a given public SSH key for a given or current IAM/SSH user.")
+parser_delete_key = subparsers.add_parser("delete_key",
+                                          help="Delete a given public SSH key for a given or current IAM/SSH user.")
 parser_delete_key.add_argument("ssh_public_key_id", help="ID of SSH key to enable")
 parser_delete_key.add_argument("--user", help="User to edit SSH key for")
 
-parser_sync_groups = subparsers.add_parser(
-    "sync_groups",
-    help="Sync IAM group memberships for IAM users with UNIX users/groups on this machine. This command is used internally by Keymaker; it is called periodically from a cron job."
-)
-
+parser_sync_groups = subparsers.add_parser("sync_groups",
+                                           help=("Sync IAM group memberships for IAM users with UNIX users/groups on "
+                                                 "this machine. This command is used internally by Keymaker; it is "
+                                                 "called periodically from a cron job."))
 argcomplete.autocomplete(parser)
 
 if len(sys.argv) == 1:
