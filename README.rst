@@ -18,7 +18,7 @@ On instances that accept SSH logins:
 - Ensure processes launched by sshd have the IAM permissions iam:GetSSHPublicKey, iam:ListSSHPublicKeys, iam:GetUser,
   iam:ListGroups, iam:ListGroupsForUser, iam:GetRole, and sts:GetCallerIdentity. The easiest way to do this is by
   running ``keymaker configure --instance-iam-role ROLE_NAME`` from a privileged account, which will create and attach a
-  Keymaker IAM policy to the role ``ROLE_NAME`` (which you should then attach, via an IAM Instance Profile, to any
+  Keymaker IAM policy to the role ``ROLE_NAME`` (which you should then assign, via an IAM Instance Profile, to any
   instances you launch). You can also manually configure these permissions, or attach the IAMReadOnlyAccess managed
   policy.
 
@@ -74,7 +74,7 @@ AWS account.
 
 Keymaker expects to find this configuration information by introspecting the instance's own IAM role description. The
 description is expected to contain a list of space-separated config tokens, for example,
-``keymaker_id_resolver_account=123456789012 keymaker_id_resolver_role=id_resolver``. For ``sts:AssumeRole` to work, the
+``keymaker_id_resolver_account=123456789012 keymaker_id_resolver_role=id_resolver``. For ``sts:AssumeRole`` to work, the
 role ``id_resolver`` in account 123456789012 is expected to have a trust policy allowing the instance's IAM role to
 perform sts:AssumeRole on ``id_resolver``.
 
@@ -85,12 +85,10 @@ account.
 Requiring IAM group membership
 ------------------------------
 
-
-Group membership is asserted if the instance's IAM role description
-contains the config token
-"keymaker_require_iam_group=prod_ssh_users". The user logging in is
-then required to be a member of the IAM group "prod_ssh_users".
-
+Group membership is asserted if the instance's IAM role description contains the config token
+``keymaker_require_iam_group=prod_ssh_users``. The user logging in is then required to be a member of the
+**prod_ssh_users** IAM group. Apply this configuration automatically by running
+``keymaker configure --require-iam-group IAM_GROUP_NAME``.
 
 Security considerations
 -----------------------
