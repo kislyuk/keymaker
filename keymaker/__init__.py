@@ -16,8 +16,10 @@ import grp
 import shlex
 from collections import namedtuple
 
-import boto3  # noqa
-from botocore.exceptions import ClientError  # noqa
+import boto3
+from botocore.exceptions import ClientError
+
+from .iam.policies import ec2_trust_policy, keymaker_instance_role_policy, cross_account_trust_policy
 
 USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
@@ -36,7 +38,58 @@ def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
 
 def configure(args):
-    print("Will configure", args)
+    iam = boto3.resource("iam")
+    sts = boto3.client("sts")
+    account_id = sts.get_caller_identity()["Account"]
+    logger.info("Configuring Keymaker in account %s", account_id)
+    iam_roles = []
+    iam_role_descrpition = {}
+    if args.id_resolver_account:
+        iam_role_descrpition.update(keymaker_id_resolver_account=args.id_resolver_account,
+                                    keymaker_id_resolver_iam_role=args.id_resolver_iam_role)
+    if args.require_iam_group:
+        iam_role_descrpition.update(keymaker_require_iam_group=args.require_iam_group)
+    iam_role_descrpition = ", ".join("=".join(i) for i in iam_role_descrpition.items())
+    for role_name in args.instance_iam_role:
+        for role in iam.roles.all():
+            if role.name == role_name:
+                logger.info("Using existing IAM role %s", role)
+                break
+        else:
+            logger.info("Creating IAM role %s", role_name)
+            role = iam.create_role(RoleName=role_name,
+                                   AssumeRolePolicyDocument=json.dumps(ec2_trust_policy),
+                                   Description=iam_role_descrpition)
+        if role.description != iam_role_descrpition:
+            logger.info('Updating IAM role description to "%s"', iam_role_descrpition)
+            iam.meta.client.update_role_description(RoleName=role.name, Description=iam_role_descrpition)
+        iam_roles.append(role)
+    for policy in iam.policies.all():
+        if policy.policy_name == args.instance_iam_policy:
+            logger.info("Using existing IAM policy %s", policy)
+            break
+    else:
+        logger.info("Creating IAM policy %s", args.instance_iam_policy)
+        policy = iam.create_policy(PolicyName=args.instance_iam_policy,
+                                   PolicyDocument=json.dumps(keymaker_instance_role_policy),
+                                   Description=("Used by EC2 instances running Keymaker "
+                                                "(https://github.com/kislyuk/keymaker) to access user SSH public keys "
+                                                "stored in IAM user accounts."))
+    for role in iam_roles:
+        logger.info("Attaching IAM policy %s to IAM role %s", policy, role)
+        role.attach_policy(PolicyArn=policy.arn)
+    if args.id_resolver_account:
+        cross_account_trust_policy["Statement"][0]["Principal"]["AWS"] = [role.arn for role in iam_roles]
+        print("Please ensure that the IAM role {} in AWS account {} has the following trust policy:".format(
+            args.id_resolver_iam_role,
+            args.id_resolver_account
+        ))
+        print(json.dumps(cross_account_trust_policy, indent=4))
+        print("Please ensure that the IAM role {} in AWS account {} has the following IAM policy attached:".format(
+            args.id_resolver_iam_role,
+            args.id_resolver_account
+        ))
+        print(json.dumps(keymaker_instance_role_policy, indent=4))
 
 def get_authorized_keys(args):
     session = boto3.Session()
@@ -53,7 +106,7 @@ def get_authorized_keys(args):
         logger.warn(str(e))
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
-                                   resource="role/" + config["keymaker_id_resolver_role"])
+                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
         credentials = sts.assume_role(RoleArn=str(id_resolver_role_arn), RoleSessionName=__name__)["Credentials"]
         session = boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
                                 aws_secret_access_key=credentials["SecretAccessKey"],
@@ -177,7 +230,8 @@ def select_ssh_public_key(identity=None):
         try:
             keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
             if len(keys) > 1:
-                exit('Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')  # noqa
+                exit(('Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys '
+                      'with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
             return keys[0]
         except subprocess.CalledProcessError:
             default_path = os.path.expanduser("~/.ssh/id_rsa.pub")
@@ -185,7 +239,8 @@ def select_ssh_public_key(identity=None):
                 msg = 'Using {} as your SSH key. If this is not what you want, specify one with --identity or load it with ssh-add'  # noqa
                 logger.warning(msg.format(default_path))
                 return load_ssh_public_key(default_path)
-            exit('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.')  # noqa
+            exit(('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a '
+                  'new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
 
 def upload_key(args):
     ssh_public_key = select_ssh_public_key(args.identity)
