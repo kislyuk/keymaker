@@ -25,25 +25,29 @@ subparsers = parser.add_subparsers(dest="command")
 parser_configure = subparsers.add_parser("configure",
                                          help=("Perform one-time setup on an AWS account. Run this command for each "
                                                "AWS account that will use Keymaker to authenticate users."),
-                                         description=("This command creates an AWS IAM policy, KeymakerInstance, "
-                                                      "containing permissions necessary for instances to run Keymaker, "
-                                                      "and attaches this policy to instance IAM roles that you "
-                                                      "specify. Optionally, this command also configures cross-account "
-                                                      "authentication."))
-parser_configure.add_argument("--instance-iam-role", metavar="IAM_ROLE_NAME", nargs="+", required=True,
-                              help="Name of the role(s) that instances running Keymaker will assume.")
-parser_configure.add_argument("--instance-iam-policy", metavar="IAM_POLICY_NAME",
-                              default="KeymakerInstanceIAMReadAccess", help=argparse.SUPPRESS)
-parser_configure.add_argument("--id-resolver-account", metavar="AWS_ACCOUNT_ID",
-                              help=("Numeric ID of the account that instances running Keymaker will use to fetch IAM "
-                                    "user identities. This argument is only used in cross-account authentication. By "
-                                    "default, IAM user identities reside in the same AWS account as the instance."))
-parser_configure.add_argument("--id-resolver-iam-role", metavar="IAM_ROLE_NAME", default="KeymakerIdResolver",
-                              help=("Name of the role that instances running Keymaker will assume in the ID resolver "
-                                    "account when performing cross-account authentication (off by default)."))
+                                         description=("This command creates an AWS IAM policy, "
+                                                      "KeymakerInstanceIAMReadAccess, containing permissions necessary "
+                                                      "for instances to run Keymaker, and attaches this policy to "
+                                                      "instance IAM roles that you specify. Optionally, this command "
+                                                      "also configures cross-account authentication."))
 parser_configure.add_argument("--require-iam-group", metavar="IAM_GROUP_NAME",
                               help=("Name of the IAM group that instances running Keymaker will require authenticating "
                                     "users to belong to in order for SSH login to succeed (none by default)."))
+parser_configure.add_argument("--instance-iam-role", metavar="IAM_ROLE_NAME_OR_ARN", required=True,
+                              help=("Name or ARN of the role that instances running Keymaker will be assigned. If a "
+                                    "given ARN refers to a role in an AWS account other than the current one, then "
+                                    "cross-account authentication will be configured, with the current account assumed "
+                                    "to contain IAM user identities."))
+parser_configure.add_argument("--cross-account-profile", metavar="AWS_CLI_PROFILE_NAME",
+                              help=("When configuring cross-account authentication, use this AWS CLI profile to "
+                                    "perform configuration in the account that the instance IAM role belongs to. See "
+                                    "http://docs.aws.amazon.com/cli/latest/userguide/cli-roles.html for more "
+                                    "information on configuring the AWS CLI for this purpose."))
+parser_configure.add_argument("--id-resolver-iam-role", metavar="IAM_ROLE_NAME", default="KeymakerIdResolver",
+                              help=("Name of the role that instances running Keymaker will assume in the ID resolver "
+                                    "account when performing cross-account authentication (off by default)."))
+parser_configure.add_argument("--instance-iam-policy", metavar="IAM_POLICY_NAME",
+                              default="KeymakerInstanceIAMReadAccess", help=argparse.SUPPRESS)
 
 parser_upload_key = subparsers.add_parser("upload_key",
                                           help=("Upload public SSH key for a user. Run this command for each user who "
@@ -55,7 +59,7 @@ parser_upload_key.add_argument("--identity",
                                help=("An existing SSH key filename to get the public key from. Commonly stored in "
                                      "~/.ssh with either a .pub or .pem file extension."))
 user_arg = parser_upload_key.add_argument("--user",
-                                          help=("IAM user name to upload the key for. The defaut is to upload for the "
+                                          help=("IAM user name to upload the key for. The default is to upload for the "
                                                 "current IAM user."))
 user_arg.completer = lambda prefix, **kwargs: [u.name
                                                for u in boto3.resource("iam").users.all()

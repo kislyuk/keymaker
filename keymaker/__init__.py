@@ -19,7 +19,7 @@ from collections import namedtuple
 import boto3
 from botocore.exceptions import ClientError
 
-from .iam.policies import ec2_trust_policy, keymaker_instance_role_policy, cross_account_trust_policy
+from .iam.policies import trust_policy_template, keymaker_instance_role_policy
 
 USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
@@ -37,59 +37,77 @@ iam_linux_group_prefix = "keymaker_"
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
 
+def ensure_iam_role(iam, role_name, trust_principal, keymaker_config=None):
+    trust_policy = json.loads(json.dumps(trust_policy_template))
+    trust_policy["Statement"][0]["Principal"] = trust_principal
+    descrpition = ", ".join("=".join(i) for i in keymaker_config.items())
+    for role in iam.roles.all():
+        if role.name == role_name:
+            logger.info("Using existing IAM role %s", role)
+            break
+    else:
+        logger.info("Creating IAM role %s", role_name)
+        role = iam.create_role(RoleName=role_name, AssumeRolePolicyDocument=json.dumps(trust_policy))
+    role_config = parse_keymaker_config(role.description)
+    if keymaker_config is not None and role_config != keymaker_config:
+        descrpition = ", ".join("=".join(i) for i in keymaker_config.items())
+        logger.info('Updating IAM role description to "%s"', descrpition)
+        iam.meta.client.update_role_description(RoleName=role.name, Description=descrpition)
+    iam.meta.client.update_assume_role_policy(RoleName=role.name, PolicyDocument=json.dumps(trust_policy))
+    return role
+
+def ensure_iam_policy(iam, policy_name, policy, description):
+    for p in iam.policies.all():
+        if p.policy_name == policy_name:
+            logger.info("Using existing IAM policy %s", p)
+            return p
+    else:
+        logger.info("Creating IAM policy %s", policy_name)
+        return iam.create_policy(PolicyName=policy_name, PolicyDocument=json.dumps(policy), Description=description)
+
 def configure(args):
     iam = boto3.resource("iam")
     sts = boto3.client("sts")
     account_id = sts.get_caller_identity()["Account"]
     logger.info("Configuring Keymaker in account %s", account_id)
-    iam_roles = []
-    iam_role_descrpition = {}
-    if args.id_resolver_account:
-        iam_role_descrpition.update(keymaker_id_resolver_account=args.id_resolver_account,
-                                    keymaker_id_resolver_iam_role=args.id_resolver_iam_role)
+
+    keymaker_config = {}
     if args.require_iam_group:
-        iam_role_descrpition.update(keymaker_require_iam_group=args.require_iam_group)
-    iam_role_descrpition = ", ".join("=".join(i) for i in iam_role_descrpition.items())
-    for role_name in args.instance_iam_role:
-        for role in iam.roles.all():
-            if role.name == role_name:
-                logger.info("Using existing IAM role %s", role)
-                break
-        else:
-            logger.info("Creating IAM role %s", role_name)
-            role = iam.create_role(RoleName=role_name,
-                                   AssumeRolePolicyDocument=json.dumps(ec2_trust_policy),
-                                   Description=iam_role_descrpition)
-        if role.description != iam_role_descrpition:
-            logger.info('Updating IAM role description to "%s"', iam_role_descrpition)
-            iam.meta.client.update_role_description(RoleName=role.name, Description=iam_role_descrpition)
-        iam_roles.append(role)
-    for policy in iam.policies.all():
-        if policy.policy_name == args.instance_iam_policy:
-            logger.info("Using existing IAM policy %s", policy)
-            break
-    else:
-        logger.info("Creating IAM policy %s", args.instance_iam_policy)
-        policy = iam.create_policy(PolicyName=args.instance_iam_policy,
-                                   PolicyDocument=json.dumps(keymaker_instance_role_policy),
-                                   Description=("Used by EC2 instances running Keymaker "
-                                                "(https://github.com/kislyuk/keymaker) to access user SSH public keys "
-                                                "stored in IAM user accounts."))
-    for role in iam_roles:
-        logger.info("Attaching IAM policy %s to IAM role %s", policy, role)
-        role.attach_policy(PolicyArn=policy.arn)
-    if args.id_resolver_account:
-        cross_account_trust_policy["Statement"][0]["Principal"]["AWS"] = [role.arn for role in iam_roles]
-        print("Please ensure that the IAM role {} in AWS account {} has the following trust policy:".format(
-            args.id_resolver_iam_role,
-            args.id_resolver_account
-        ))
-        print(json.dumps(cross_account_trust_policy, indent=4))
-        print("Please ensure that the IAM role {} in AWS account {} has the following IAM policy attached:".format(
-            args.id_resolver_iam_role,
-            args.id_resolver_account
-        ))
-        print(json.dumps(keymaker_instance_role_policy, indent=4))
+        keymaker_config.update(keymaker_require_iam_group=args.require_iam_group)
+    keymaker_policy_description = ("Used by EC2 instances running Keymaker (https://github.com/kislyuk/keymaker) to "
+                                   "access user SSH public keys stored in IAM user accounts.")
+    keymaker_policy = ensure_iam_policy(iam, args.instance_iam_policy, keymaker_instance_role_policy,
+                                        description=keymaker_policy_description)
+    if args.instance_iam_role.startswith("arn:") and parse_arn(args.instance_iam_role).account != account_id:
+        id_resolver_role = ensure_iam_role(iam, args.id_resolver_iam_role,
+                                           trust_principal={"AWS": args.instance_iam_role})
+        keymaker_config.update(keymaker_id_resolver_account=account_id,
+                               keymaker_id_resolver_iam_role=args.id_resolver_iam_role)
+        id_resolver_role.attach_policy(PolicyArn=keymaker_policy.arn)
+        iam = boto3.Session(profile_name=args.cross_account_profile).client("iam")
+    instance_role_name = args.instance_iam_role
+    if args.instance_iam_role.startswith("arn:"):
+        instance_role_name = parse_arn(instance_role_name).resource.split("/", 1)[1]
+    instance_role = ensure_iam_role(iam, instance_role_name, trust_principal={"Service": "ec2.amazonaws.com"},
+                                    keymaker_config=keymaker_config)
+    if args.instance_iam_role.startswith("arn:") and parse_arn(args.instance_iam_role).account != account_id:
+        keymaker_policy = ensure_iam_policy(iam, args.instance_iam_policy, keymaker_instance_role_policy,
+                                            description=keymaker_policy_description)
+    logger.info("Attaching IAM policy %s to IAM role %s", keymaker_policy, instance_role)
+    instance_role.attach_policy(PolicyArn=keymaker_policy.arn)
+
+def parse_keymaker_config(iam_role_descrpition):
+    config = {}
+    for role_desc_word in re.split("[\s\,]+", iam_role_descrpition or ""):
+        if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
+            config.update([shlex.split(role_desc_word)[0].split("=")])
+    return config
+
+def get_assume_role_session(sts, role_arn):
+    credentials = sts.assume_role(RoleArn=str(role_arn), RoleSessionName=__name__)["Credentials"]
+    return boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
+                         aws_secret_access_key=credentials["SecretAccessKey"],
+                         aws_session_token=credentials["SessionToken"])
 
 def get_authorized_keys(args):
     session = boto3.Session()
@@ -99,19 +117,13 @@ def get_authorized_keys(args):
     try:
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
-        for role_desc_word in re.split("[\s\,]+", iam.get_role(RoleName=role_name)["Role"]["Description"]):
-            if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
-                config.update([shlex.split(role_desc_word)[0].split("=")])
+        config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"]["Description"])
     except Exception as e:
         logger.warn(str(e))
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
                                    resource="role/" + config["keymaker_id_resolver_iam_role"])
-        credentials = sts.assume_role(RoleArn=str(id_resolver_role_arn), RoleSessionName=__name__)["Credentials"]
-        session = boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
-                                aws_secret_access_key=credentials["SecretAccessKey"],
-                                aws_session_token=credentials["SessionToken"])
-        iam = session.client("iam")
+        iam = get_assume_role_session(sts, id_resolver_role_arn).client("iam")
     if "keymaker_require_iam_group" in config:
         groups = []
         for page in iam.get_paginator('list_groups_for_user').paginate(UserName=args.user):

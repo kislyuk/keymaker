@@ -17,7 +17,7 @@ On instances that accept SSH logins:
 - Run ``keymaker install``.
 - Ensure processes launched by sshd have the IAM permissions iam:GetSSHPublicKey, iam:ListSSHPublicKeys, iam:GetUser,
   iam:ListGroups, iam:ListGroupsForUser, iam:GetRole, and sts:GetCallerIdentity. The easiest way to do this is by
-  running ``keymaker configure --instance-iam-role ROLE_NAME`` from a privileged account, which will create and attach a
+  running ``keymaker configure --instance-iam-role ROLE_NAME`` as a privileged IAM user, which will create and attach a
   Keymaker IAM policy to the role ``ROLE_NAME`` (which you should then assign, via an IAM Instance Profile, to any
   instances you launch). You can also manually configure these permissions, or attach the IAMReadOnlyAccess managed
   policy.
@@ -70,7 +70,7 @@ Some AWS security models put IAM users in one AWS account, and resources (EC2 in
 federated AWS accounts. Users then assume roles in those federated accounts, subject to their permissions, with `sts:AssumeRole
 <http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html>`_. When users connect via SSH to instances
 running in federated accounts, Keymaker can be instructed to look up the user identity and SSH public key in the other
-AWS account.
+AWS account (called the "ID resolver" account).
 
 Keymaker expects to find this configuration information by introspecting the instance's own IAM role description. The
 description is expected to contain a list of space-separated config tokens, for example,
@@ -78,9 +78,11 @@ description is expected to contain a list of space-separated config tokens, for 
 role ``id_resolver`` in account 123456789012 is expected to have a trust policy allowing the instance's IAM role to
 perform sts:AssumeRole on ``id_resolver``.
 
-Run the following command to apply this configuration automatically: ``keymaker configure --instance-iam-role
-ROLE_NAME --id-resolver-account 123456789012``. Follow the instructions to apply the configuration in the ID resolver
-account.
+Run the following command in the ID resolver account (that contains the IAM users) to apply this configuration automatically:
+``keymaker configure --instance-iam-role arn:aws:iam::987654321098:role/ROLE_NAME --cross-account-profile AWS_CLI_PROFILE_NAME``.
+Here, 987654321098 is the account ID of the federated account where EC2 instances will run, and AWS_CLI_PROFILE_NAME
+is the name of the `AWS CLI role profile <http://docs.aws.amazon.com/cli/latest/userguide/cli-roles.html>`_ that you
+have set up to access the federated account.
 
 Requiring IAM group membership
 ------------------------------

@@ -1,11 +1,9 @@
-ec2_trust_policy = {
+trust_policy_template = {
     "Version": "2012-10-17",
     "Statement": [
         {
             "Effect": "Allow",
-            "Principal": {
-                "Service": "ec2.amazonaws.com"
-            },
+            "Principal": None,
             "Action": "sts:AssumeRole"
         }
     ]
@@ -26,19 +24,6 @@ keymaker_instance_role_policy = {
                 "sts:GetCallerIdentity"
             ],
             "Resource": "*"
-        }
-    ]
-}
-
-cross_account_trust_policy = {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": []
-            },
-            "Action": "sts:AssumeRole"
         }
     ]
 }
