@@ -66,8 +66,8 @@ group-based privileges remain current as well.
 Cross-account authentication
 ----------------------------
 
-Some AWS security models put IAM users in one AWS account, and resources in a family of other federated AWS
-accounts. Users then assume roles in those federated accounts, subject to their permissions, with `sts:AssumeRole
+Some AWS security models put IAM users in one AWS account, and resources (EC2 instances, S3 buckets, etc.) in a family of other
+federated AWS accounts. Users then assume roles in those federated accounts, subject to their permissions, with `sts:AssumeRole
 <http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html>`_. When users connect via SSH to instances
 running in federated accounts, Keymaker can be instructed to look up the user identity and SSH public key in the other
 AWS account.
