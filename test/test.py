@@ -4,8 +4,7 @@ import os.path
 import sys
 import unittest
 
-sys.path.append(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))  # noqa
 
 import keymaker
 
@@ -27,6 +26,16 @@ class KeymakerTests(unittest.TestCase):
         result = keymaker.aws_to_unix_id(self.key)
         assert result == 26594
         assert type(result) == int
+
+    def test_parse_keymaker_config(self):
+        for config in ("keymaker_a=b, keymaker_c=d",
+                       "keymaker_a=b, keymaker_c='d'",
+                       'keymaker_a=b, keymaker_c="d"',
+                       "keymaker_a=b,  keymaker_c=d",
+                       "Role's description keymaker_a=b keymaker_c=d e=f"):
+            self.assertEqual(keymaker.parse_keymaker_config(config),
+                             dict(keymaker_a="b", keymaker_c="d"))
+
 
 if __name__ == "__main__":
     unittest.main()

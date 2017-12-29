@@ -60,6 +60,9 @@ def ensure_iam_policy(iam, policy_name, policy, description):
     for p in iam.policies.all():
         if p.policy_name == policy_name:
             logger.info("Using existing IAM policy %s", p)
+            if p.default_version.document != policy:
+                logger.info("Updating IAM policy %s", p)
+                p.create_version(PolicyDocument=json.dumps(policy), SetAsDefault=True)
             return p
     else:
         logger.info("Creating IAM policy %s", policy_name)
