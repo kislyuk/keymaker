@@ -67,10 +67,10 @@ Cross-account authentication
 ----------------------------
 
 Some AWS security models put IAM users in one AWS account, and resources (EC2 instances, S3 buckets, etc.) in a family of other
-federated AWS accounts. Users then assume roles in those federated accounts, subject to their permissions, with `sts:AssumeRole
-<http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html>`_. When users connect via SSH to instances
-running in federated accounts, Keymaker can be instructed to look up the user identity and SSH public key in the other
-AWS account (called the "ID resolver" account).
+federated AWS accounts (for example, a dev account and a prod account). Users then assume roles in those federated accounts,
+subject to their permissions, with `sts:AssumeRole <http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html>`_. 
+When users connect via SSH to instances running in federated accounts, Keymaker can be instructed to look up the user identity
+and SSH public key in the other AWS account (called the "ID resolver" account).
 
 Keymaker expects to find this configuration information by introspecting the instance's own IAM role description. The
 description is expected to contain a list of space-separated config tokens, for example,
