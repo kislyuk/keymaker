@@ -40,7 +40,7 @@ def parse_arn(arn):
 def ensure_iam_role(iam, role_name, trust_principal, keymaker_config=None):
     trust_policy = json.loads(json.dumps(trust_policy_template))
     trust_policy["Statement"][0]["Principal"] = trust_principal
-    descrpition = ", ".join("=".join(i) for i in keymaker_config.items()) if keymaker_config else ""
+    description = ", ".join("=".join(i) for i in keymaker_config.items()) if keymaker_config else ""
     for role in iam.roles.all():
         if role.name == role_name:
             logger.info("Using existing IAM role %s", role)
@@ -50,9 +50,9 @@ def ensure_iam_role(iam, role_name, trust_principal, keymaker_config=None):
         role = iam.create_role(RoleName=role_name, AssumeRolePolicyDocument=json.dumps(trust_policy))
     role_config = parse_keymaker_config(role.description)
     if keymaker_config is not None and role_config != keymaker_config:
-        descrpition = ", ".join("=".join(i) for i in keymaker_config.items()) if keymaker_config else ""
-        logger.info('Updating IAM role description to "%s"', descrpition)
-        iam.meta.client.update_role_description(RoleName=role.name, Description=descrpition)
+        description = ", ".join("=".join(i) for i in keymaker_config.items()) if keymaker_config else ""
+        logger.info('Updating IAM role description to "%s"', description)
+        iam.meta.client.update_role_description(RoleName=role.name, Description=description)
     iam.meta.client.update_assume_role_policy(RoleName=role.name, PolicyDocument=json.dumps(trust_policy))
     return role
 
@@ -102,9 +102,9 @@ def configure(args):
     logger.info("Attaching IAM policy %s to IAM role %s", keymaker_policy, instance_role)
     instance_role.attach_policy(PolicyArn=keymaker_policy.arn)
 
-def parse_keymaker_config(iam_role_descrpition):
+def parse_keymaker_config(iam_role_description):
     config = {}
-    for role_desc_word in re.split("[\s\,]+", iam_role_descrpition or ""):
+    for role_desc_word in re.split("[\s\,]+", iam_role_description or ""):
         if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
             config.update([shlex.split(role_desc_word)[0].split("=")])
     return config
