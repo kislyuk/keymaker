@@ -1,5 +1,9 @@
+version: keymaker/version.py
+keymaker/version.py: setup.py
+	echo "__version__ = '$$(python setup.py --version)'" > $@
+
 test_deps:
-	pip install coverage flake8 wheel
+	pip install .[test]
 
 lint: test_deps
 	./setup.py flake8
@@ -13,7 +17,7 @@ init_docs:
 docs:
 	$(MAKE) -C docs html
 
-install: clean
+install: clean version
 	pip install wheel
 	python setup.py bdist_wheel
 	pip install --upgrade dist/*.whl

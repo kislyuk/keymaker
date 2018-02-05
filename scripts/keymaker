@@ -16,6 +16,7 @@ import boto3, argcomplete
 from keymaker import (configure, install, get_authorized_keys, get_uid, get_groups, list_keys, upload_key, disable_key,
                       enable_key, delete_key, sync_groups, logger)
 from keymaker.printing import KEYMAKER_LOGO
+from keymaker.version import __version__
 
 parser = argparse.ArgumentParser(description=__doc__.replace("Keymaker:", KEYMAKER_LOGO()),
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -111,6 +112,7 @@ parser_sync_groups = subparsers.add_parser("sync_groups",
                                            help=("Sync IAM group memberships for IAM users with UNIX users/groups on "
                                                  "this machine. This command is used internally by Keymaker; it is "
                                                  "called periodically from a cron job."))
+parser.add_argument("--version", action="version", version=__version__)
 argcomplete.autocomplete(parser)
 
 if len(sys.argv) == 1:

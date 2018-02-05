@@ -4,6 +4,7 @@ import os, glob
 from setuptools import setup, find_packages
 
 install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(__file__), "requirements.txt"))]
+tests_require = ["coverage", "flake8", "wheel"]
 
 setup(
     name='keymaker',
@@ -15,6 +16,7 @@ setup(
     description='Lightweight SSH key management on AWS EC2',
     long_description=open('README.rst').read(),
     install_requires=install_requires,
+    tests_require=tests_require,
     packages=find_packages(exclude=['test']),
     scripts=glob.glob('scripts/*'),
     platforms=['MacOS X', 'Posix'],
