@@ -1,3 +1,8 @@
+Changes for v0.5.1 (2018-02-05)
+===============================
+
+-  keymaker configure: account autoconfiguration support (#30)
+
 Changes for v0.5.0 (2017-12-21)
 ===============================
 
