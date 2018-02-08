@@ -36,6 +36,8 @@ from), you can run ``keymaker <subcommand>``, where subcommand is::
     delete_key          Delete a given public SSH key for a given or current IAM/SSH user.
     configure           Perform administrative configuration tasks on the current AWS account.
 
+Use ``keymaker <subcommand> --help`` to get a full description and list of options for each command.
+
 Principle of operation
 ----------------------
 
