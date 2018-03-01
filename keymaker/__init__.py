@@ -164,13 +164,34 @@ def aws_to_unix_id(aws_key_id):
         return 2000 + (int.from_bytes(uid_bytes, byteorder=sys.byteorder) // 2)
 
 def get_uid(args):
-    iam = boto3.resource("iam")
+
+    session = boto3.Session()
+    iam_caller = session.client("iam")
+    sts = session.client("sts")
+    config = {}
+
     try:
-        user_id = iam.User(args.user).user_id
+        role_arn = parse_arn(sts.get_caller_identity()["Arn"])
+        _, role_name, instance_id = role_arn.resource.split("/", 2)
+        config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"]["Description"])
+    except Exception as e:
+        logger.warn(str(e))
+
+    if "keymaker_id_resolver_account" in config:
+        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
+                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
+
+    else:
+        iam_resource = boto3.resource("iam")
+
+    try:
+        user_id = iam_resource.User(args.user).user_id
         uid = aws_to_unix_id(user_id)
         print(uid)
     except Exception as e:
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
+
 
 def get_groups(args):
     iam = boto3.resource("iam")
