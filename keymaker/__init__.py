@@ -213,6 +213,9 @@ def get_groups(args):
     else:
         iam_resource = boto3.resource("iam")
 
+    if 'keymaker_linux_group_prefix' in config:
+        iam_linux_group_prefix = config['keymaker_linux_group_prefix']
+
     try:
         for group in iam_resource.User(args.user).groups.all():
             if group.name.startswith(iam_linux_group_prefix):
@@ -358,8 +361,29 @@ def is_managed(unix_username):
 
 def sync_groups(args):
     from pwd import getpwnam
-    iam = boto3.resource("iam")
-    for group in iam.groups.all():
+
+    session = boto3.Session()
+    iam_caller = session.client("iam")
+    sts = session.client("sts")
+    config = {}
+    try:
+        role_arn = parse_arn(sts.get_caller_identity()["Arn"])
+        _, role_name, instance_id = role_arn.resource.split("/", 2)
+        config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"]["Description"])
+    except Exception as e:
+        logger.warn(str(e))
+    if "keymaker_id_resolver_account" in config:
+        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
+                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
+
+    else:
+        iam_resource = boto3.resource("iam")
+
+    if 'keymaker_linux_group_prefix' in config:
+        iam_linux_group_prefix = config['keymaker_linux_group_prefix']
+
+    for group in iam_resource.groups.all():
         if not group.name.startswith(iam_linux_group_prefix):
             continue
         logger.info("Syncing IAM group %s", group.name)
