@@ -1,3 +1,10 @@
+Changes for v0.5.2 (2018-03-26)
+===============================
+
+-  Make get_user, get_group, sync_groups cross account aware (#38)
+
+-  Add keymaker –version
+
 Changes for v0.5.1 (2018-02-05)
 ===============================
 
