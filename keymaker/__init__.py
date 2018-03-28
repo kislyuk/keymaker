@@ -33,6 +33,7 @@ class ARN(namedtuple("ARN", "partition service region account resource")):
 ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
 iam_linux_group_prefix = "keymaker_"
+config_file_path = "/etc/keymaker/keymaker.config"
 
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
@@ -107,6 +108,16 @@ def parse_keymaker_config(iam_role_description):
     for role_desc_word in re.split("[\s\,]+", iam_role_description or ""):
         if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
             config.update([shlex.split(role_desc_word)[0].split("=")])
+
+    if len(config) == 0 and os.path.isfile(config_file_path) :
+        try:
+            config_fd = open(config_file_path, 'r')
+            for line in config_fd:
+                if line.startswith("keymaker_") and line.count("=") == 1:
+                    config.update([shlex.split(line)[0].split("=")])
+        except Exception as e:
+            logger.warn(str(e))
+
     return config
 
 def get_assume_role_session(sts, role_arn):
