@@ -32,7 +32,7 @@ class ARN(namedtuple("ARN", "partition service region account resource")):
 
 ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
-iam_linux_group_prefix = "keymaker_"
+default_iam_linux_group_prefix = "keymaker_"
 
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
@@ -164,7 +164,6 @@ def aws_to_unix_id(aws_key_id):
         return 2000 + (int.from_bytes(uid_bytes, byteorder=sys.byteorder) // 2)
 
 def get_uid(args):
-
     session = boto3.Session()
     iam_caller = session.client("iam")
     sts = session.client("sts")
@@ -192,9 +191,7 @@ def get_uid(args):
     except Exception as e:
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
-
 def get_groups(args):
-
     session = boto3.Session()
     iam_caller = session.client("iam")
     sts = session.client("sts")
@@ -213,8 +210,7 @@ def get_groups(args):
     else:
         iam_resource = boto3.resource("iam")
 
-    if 'keymaker_linux_group_prefix' in config:
-        iam_linux_group_prefix = config['keymaker_linux_group_prefix']
+    iam_linux_group_prefix = config.get('keymaker_linux_group_prefix', default_iam_linux_group_prefix)
 
     try:
         for group in iam_resource.User(args.user).groups.all():
@@ -222,8 +218,8 @@ def get_groups(args):
                 gid = aws_to_unix_id(group.group_id)  # noqa
                 print(group.name[len(iam_linux_group_prefix):])
     except Exception as e:
-        err_exit("in get groups Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
-
+        msg = "in get groups Error while retrieving UID for {u}: {e}"
+        err_exit(msg.format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
 def install(args):
     user = args.user or "keymaker"
@@ -380,8 +376,7 @@ def sync_groups(args):
     else:
         iam_resource = boto3.resource("iam")
 
-    if 'keymaker_linux_group_prefix' in config:
-        iam_linux_group_prefix = config['keymaker_linux_group_prefix']
+    iam_linux_group_prefix = config.get('keymaker_linux_group_prefix', default_iam_linux_group_prefix)
 
     for group in iam_resource.groups.all():
         if not group.name.startswith(iam_linux_group_prefix):
