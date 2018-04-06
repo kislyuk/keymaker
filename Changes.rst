@@ -1,3 +1,10 @@
+Changes for v0.5.3 (2018-04-05)
+===============================
+
+-  Remove unnecessary PAM config. Fixes #23
+
+-  Fix group sync on default iam_linux_group_prefix. Fixes #40
+
 Changes for v0.5.2 (2018-03-26)
 ===============================
 
