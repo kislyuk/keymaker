@@ -1,3 +1,8 @@
+Changes for v1.0.0 (2018-04-05)
+===============================
+
+-  For the avoidance of doubt, this tool is stable.
+
 Changes for v0.5.3 (2018-04-05)
 ===============================
 
