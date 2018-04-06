@@ -240,12 +240,8 @@ def install(args):
 
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config_lines = fh.read().splitlines()
-    remove_lines = ["ChallengeResponseAuthentication no"]
     add_lines = ["AuthorizedKeysCommand " + authorized_keys_script_path,
-                 "AuthorizedKeysCommandUser " + user,
-                 "ChallengeResponseAuthentication yes",
-                 "AuthenticationMethods publickey keyboard-interactive:pam,publickey"]
-    sshd_config_lines = [l for l in sshd_config_lines if l not in remove_lines]
+                 "AuthorizedKeysCommandUser " + user]
     sshd_config_lines += [l for l in add_lines if l not in sshd_config_lines]
     with open("/etc/ssh/sshd_config", "w") as fh:
         for line in sshd_config_lines:
