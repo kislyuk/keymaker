@@ -76,7 +76,7 @@ and SSH public key in the other AWS account (called the "ID resolver" account).
 
 Keymaker expects to find this configuration information by introspecting the instance's own IAM role description. The
 description is expected to contain a list of space-separated config tokens, for example,
-``keymaker_id_resolver_account=123456789012 keymaker_id_resolver_role=id_resolver``. For ``sts:AssumeRole`` to work, the
+``keymaker_id_resolver_account=123456789012 keymaker_id_resolver_iam_role=id_resolver``. For ``sts:AssumeRole`` to work, the
 role ``id_resolver`` in account 123456789012 is expected to have a trust policy allowing the instance's IAM role to
 perform sts:AssumeRole on ``id_resolver``.
 
