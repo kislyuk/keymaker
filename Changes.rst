@@ -1,3 +1,9 @@
+Changes for v1.0.2 (2018-04-12)
+===============================
+
+-  Produce more readable log line when no config is found in role
+   description
+
 Changes for v1.0.1 (2018-04-12)
 ===============================
 
