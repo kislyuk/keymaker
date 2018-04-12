@@ -125,7 +125,7 @@ def get_authorized_keys(args):
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"]["Description"])
     except Exception as e:
-        logger.warn(str(e))
+        logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
                                    resource="role/" + config["keymaker_id_resolver_iam_role"])
@@ -174,7 +174,7 @@ def get_uid(args):
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"]["Description"])
     except Exception as e:
-        logger.warn(str(e))
+        logger.info("No IAM role based configuration found")
 
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
@@ -201,7 +201,7 @@ def get_groups(args):
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"]["Description"])
     except Exception as e:
-        logger.warn(str(e))
+        logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
                                    resource="role/" + config["keymaker_id_resolver_iam_role"])
