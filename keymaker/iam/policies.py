@@ -18,6 +18,7 @@ keymaker_instance_role_policy = {
                 "iam:GetSSHPublicKey",
                 "iam:ListSSHPublicKeys",
                 "iam:GetUser",
+                "iam:GetGroup",
                 "iam:ListGroups",
                 "iam:ListGroupsForUser",
                 "iam:GetRole",
