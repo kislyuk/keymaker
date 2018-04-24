@@ -74,17 +74,23 @@ subject to their permissions, with `sts:AssumeRole <http://docs.aws.amazon.com/S
 When users connect via SSH to instances running in federated accounts, Keymaker can be instructed to look up the user identity
 and SSH public key in the other AWS account (called the "ID resolver" account).
 
-Keymaker can find this configuration information into two different places :
+Keymaker can find its configuration information into two different places :
 - first by introspecting the instance's own IAM role description. The
 description is expected to contain a list of space-separated config tokens, for example,
 ``keymaker_id_resolver_account=123456789012 keymaker_id_resolver_role=id_resolver``. For ``sts:AssumeRole`` to work, the
 role ``id_resolver`` in account 123456789012 is expected to have a trust policy allowing the instance's IAM role to
 perform sts:AssumeRole on ``id_resolver``.
 
-- then if role description does not contain any config token by reading a configuration file located here : `/etc/keymaker/keymaker.config`. Keymaker expect one config token by line.
-```
-keymaker_id_resolver_account=123456789012
-keymaker_id_resolver_role=id_resolver
+- then if role description does not contain any configuration tokens, Keymaker will search config-token in the following yaml file : `/etc/keymaker/keymaker.yaml`.
+
+Below an example:
+
+```yaml
+---
+keymaker_id_resolver_account: "123456789"
+keymaker_id_resolver_iam_role: "anIamRole"
+keymaker_require_iam_group: "myGroup"
+keymaker_linux_group_prefix: "myPrefix"
 ```
 
 Run the following command in the ID resolver account (that contains the IAM users) to apply this configuration automatically:

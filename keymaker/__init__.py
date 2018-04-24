@@ -14,6 +14,7 @@ import hashlib
 import codecs
 import grp
 import shlex
+import yaml
 from collections import namedtuple
 
 import boto3
@@ -33,7 +34,7 @@ class ARN(namedtuple("ARN", "partition service region account resource")):
 ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
 iam_linux_group_prefix = "keymaker_"
-config_file_path = "/etc/keymaker/keymaker.config"
+config_file_path = "/etc/keymaker/keymaker.yaml"
 
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
@@ -49,7 +50,7 @@ def ensure_iam_role(iam, role_name, trust_principal, keymaker_config=None):
     else:
         logger.info("Creating IAM role %s", role_name)
         role = iam.create_role(RoleName=role_name, AssumeRolePolicyDocument=json.dumps(trust_policy))
-    role_config = parse_keymaker_config(role.description)
+    role_config = parse_keymaker_config(role)
     if keymaker_config is not None and role_config != keymaker_config:
         description = ", ".join("=".join(i) for i in keymaker_config.items()) if keymaker_config else ""
         logger.info('Updating IAM role description to "%s"', description)
@@ -103,28 +104,43 @@ def configure(args):
     logger.info("Attaching IAM policy %s to IAM role %s", keymaker_policy, instance_role)
     instance_role.attach_policy(PolicyArn=keymaker_policy.arn)
 
-def parse_keymaker_config(iam_role_description):
-    config = {}
-    for role_desc_word in re.split("[\s\,]+", iam_role_description or ""):
-        if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
-            config.update([shlex.split(role_desc_word)[0].split("=")])
 
-    if len(config) == 0 and os.path.isfile(config_file_path) :
-        try:
-            config_fd = open(config_file_path, 'r')
-            for line in config_fd:
-                if line.startswith("keymaker_") and line.count("=") == 1:
-                    config.update([shlex.split(line)[0].split("=")])
-        except Exception as e:
-            logger.warn(str(e))
+def parse_keymaker_config_in_file(config_file_path):
+    config = {}
+    try:
+        with open(config_file_path, 'r') as stream:
+            config = yaml.load(stream)
+    except Exception as e:
+        logger.warn(str(e))
 
     return config
 
+
+def parse_keymaker_config(iam_role):
+    config = {}
+    iam_role_description = None
+    if 'Description' in iam_role:
+        iam_role_description = iam_role['Description']
+    elif 'description' in iam_role:
+        iam_role_description = iam_role['description']
+
+    if iam_role_description is not None:
+        for role_desc_word in re.split("[\s\,]+", iam_role_description or ""):
+            if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
+                config.update([shlex.split(role_desc_word)[0].split("=")])
+
+    if len(config) == 0 and os.path.isfile(config_file_path) :
+        config = parse_keymaker_config_in_file(config_file_path)
+
+    return config
+
+
 def get_assume_role_session(sts, role_arn):
     credentials = sts.assume_role(RoleArn=str(role_arn), RoleSessionName=__name__)["Credentials"]
-    return boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
+    sess = boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
                          aws_secret_access_key=credentials["SecretAccessKey"],
                          aws_session_token=credentials["SessionToken"])
+    return sess
 
 def get_authorized_keys(args):
     session = boto3.Session()
@@ -134,8 +150,9 @@ def get_authorized_keys(args):
     try:
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
-        config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"]["Description"])
+        config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"])
     except Exception as e:
+        logger.warn('exception in get_authorized_keys')
         logger.warn(str(e))
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
@@ -175,7 +192,27 @@ def aws_to_unix_id(aws_key_id):
         return 2000 + (int.from_bytes(uid_bytes, byteorder=sys.byteorder) // 2)
 
 def get_uid(args):
-    iam = boto3.resource("iam")
+
+    session = boto3.Session()
+    iam_caller = session.client("iam")
+    sts = session.client("sts")
+    config = {}
+
+    try:
+        role_arn = parse_arn(sts.get_caller_identity()["Arn"])
+        _, role_name, instance_id = role_arn.resource.split("/", 2)
+        config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"])
+    except Exception as e:
+        logger.warn(str(e))
+
+    if "keymaker_id_resolver_account" in config:
+        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
+                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
+
+    else:
+        iam_resource = boto3.resource("iam")
+
     try:
         user_id = iam.User(args.user).user_id
         uid = aws_to_unix_id(user_id)
@@ -184,7 +221,28 @@ def get_uid(args):
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
 def get_groups(args):
-    iam = boto3.resource("iam")
+
+    session = boto3.Session()
+    iam_caller = session.client("iam")
+    sts = session.client("sts")
+    config = {}
+    try:
+        role_arn = parse_arn(sts.get_caller_identity()["Arn"])
+        _, role_name, instance_id = role_arn.resource.split("/", 2)
+        config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"])
+    except Exception as e:
+        logger.warn(str(e))
+    if "keymaker_id_resolver_account" in config:
+        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
+                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
+
+    else:
+        iam_resource = boto3.resource("iam")
+
+    if 'keymaker_linux_group_prefix' in config:
+        iam_linux_group_prefix = config['keymaker_linux_group_prefix']
+
     try:
         for group in iam.User(args.user).groups.all():
             if group.name.startswith(iam_linux_group_prefix):
@@ -329,8 +387,29 @@ def is_managed(unix_username):
 
 def sync_groups(args):
     from pwd import getpwnam
-    iam = boto3.resource("iam")
-    for group in iam.groups.all():
+
+    session = boto3.Session()
+    iam_caller = session.client("iam")
+    sts = session.client("sts")
+    config = {}
+    try:
+        role_arn = parse_arn(sts.get_caller_identity()["Arn"])
+        _, role_name, instance_id = role_arn.resource.split("/", 2)
+        config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"])
+    except Exception as e:
+        logger.warn(str(e))
+    if "keymaker_id_resolver_account" in config:
+        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
+                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
+
+    else:
+        iam_resource = boto3.resource("iam")
+
+    if 'keymaker_linux_group_prefix' in config:
+        iam_linux_group_prefix = config['keymaker_linux_group_prefix']
+
+    for group in iam_resource.groups.all():
         if not group.name.startswith(iam_linux_group_prefix):
             continue
         logger.info("Syncing IAM group %s", group.name)
