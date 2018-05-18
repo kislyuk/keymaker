@@ -1,3 +1,12 @@
+Changes for v1.0.4 (2018-05-18)
+===============================
+
+-  Allow configurable username suffix in keymaker role config
+
+-  Auto-configure assume role permissions in keymaker configure
+
+-  Add missing iam:GetGroup permission for keymaker sync_groups (#42)
+
 Changes for v1.0.3 (2018-04-13)
 ===============================
 

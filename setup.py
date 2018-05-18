@@ -8,7 +8,7 @@ tests_require = ["coverage", "flake8", "wheel"]
 
 setup(
     name='keymaker',
-    version='1.0.3',
+    version='1.0.4',
     url='https://github.com/kislyuk/keymaker',
     license='Apache Software License',
     author='Andrey Kislyuk',
