@@ -19,7 +19,7 @@ from collections import namedtuple
 import boto3
 from botocore.exceptions import ClientError
 
-from .iam.policies import trust_policy_template, keymaker_instance_role_policy
+from .iam.policies import trust_policy_template, keymaker_instance_role_policy, keymaker_instance_assume_role_statement
 
 USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
@@ -33,6 +33,7 @@ class ARN(namedtuple("ARN", "partition service region account resource")):
 ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
 default_iam_linux_group_prefix = "keymaker_"
+default_iam_linux_user_suffix = ""
 
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
@@ -88,6 +89,7 @@ def configure(args):
         iam = boto3.Session(profile_name=args.cross_account_profile).resource("iam")
     elif args.cross_account_profile:
         logger.warn("Instance IAM role is in current account; argument --cross-account-profile has no effect")
+
     instance_role_name = args.instance_iam_role
     if args.instance_iam_role.startswith("arn:"):
         instance_role_name = parse_arn(instance_role_name).resource.split("/", 1)[1]
@@ -97,6 +99,9 @@ def configure(args):
         id_resolver_role = ensure_iam_role(boto3.resource("iam"), args.id_resolver_iam_role,
                                            trust_principal={"AWS": args.instance_iam_role})
         id_resolver_role.attach_policy(PolicyArn=keymaker_policy.arn)
+
+        keymaker_instance_assume_role_statement["Resource"] = id_resolver_role.arn
+        keymaker_instance_role_policy["Statement"].append(keymaker_instance_assume_role_statement)
         keymaker_policy = ensure_iam_policy(iam, args.instance_iam_policy, keymaker_instance_role_policy,
                                             description=keymaker_policy_description)
     logger.info("Attaching IAM policy %s to IAM role %s", keymaker_policy, instance_role)
@@ -124,6 +129,7 @@ def get_authorized_keys(args):
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"]["Description"])
+        args.user += config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
     except Exception as e:
         logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
@@ -211,7 +217,7 @@ def get_groups(args):
         iam_resource = boto3.resource("iam")
 
     iam_linux_group_prefix = config.get('keymaker_linux_group_prefix', default_iam_linux_group_prefix)
-
+    args.user += config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
     try:
         for group in iam_resource.User(args.user).groups.all():
             if group.name.startswith(iam_linux_group_prefix):
@@ -377,6 +383,7 @@ def sync_groups(args):
         iam_resource = boto3.resource("iam")
 
     iam_linux_group_prefix = config.get('keymaker_linux_group_prefix', default_iam_linux_group_prefix)
+    iam_linux_user_suffix = config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
 
     for group in iam_resource.groups.all():
         if not group.name.startswith(iam_linux_group_prefix):
@@ -389,7 +396,11 @@ def sync_groups(args):
             logger.info("Provisioning group %s from IAM", unix_group_name)
             subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])
             unix_group = grp.getgrnam(unix_group_name)
-        user_names_in_iam_group = [user.name for user in group.users.all()]
+        user_names_in_iam_group = [user.name[:-len(iam_linux_user_suffix)]
+                                   for user in group.users.all()
+                                   if user.name.endswith(iam_linux_user_suffix)]
+        for user in user_names_in_iam_group:
+            user_names_in_iam_group = []
         for user in user_names_in_iam_group:
             if not is_managed(user):
                 logger.warn("User %s is not provisioned or not managed by keymaker, skipping", user)

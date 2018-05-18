@@ -28,3 +28,9 @@ keymaker_instance_role_policy = {
         }
     ]
 }
+
+keymaker_instance_assume_role_statement = {
+    "Action": "sts:AssumeRole",
+    "Resource": None,
+    "Effect": "Allow"
+}
