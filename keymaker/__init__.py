@@ -78,6 +78,8 @@ def configure(args):
     keymaker_config = {}
     if args.require_iam_group:
         keymaker_config.update(keymaker_require_iam_group=args.require_iam_group)
+    if args.username_suffix:
+        keymaker_config.update(keymaker_linux_user_suffix=args.username_suffix)
     keymaker_policy_description = ("Used by EC2 instances running Keymaker (https://github.com/kislyuk/keymaker) to "
                                    "access user SSH public keys stored in IAM user accounts.")
     keymaker_policy = ensure_iam_policy(iam, args.instance_iam_policy, keymaker_instance_role_policy,

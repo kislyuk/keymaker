@@ -31,6 +31,10 @@ parser_configure = subparsers.add_parser("configure",
                                                       "for instances to run Keymaker, and attaches this policy to "
                                                       "instance IAM roles that you specify. Optionally, this command "
                                                       "also configures cross-account authentication."))
+parser_configure.add_argument("--username-suffix", metavar="USERNAME_SUFFIX",
+                              help=("Suffix to append to all SSH login names when resolving them as IAM usernames. "
+                                    'For example, use "@example.com" to resolve SSH login "alice" as IAM user '
+                                    '"alice@example.com". None by default.'))
 parser_configure.add_argument("--require-iam-group", metavar="IAM_GROUP_NAME",
                               help=("Name of the IAM group that instances running Keymaker will require authenticating "
                                     "users to belong to in order for SSH login to succeed (none by default)."))
