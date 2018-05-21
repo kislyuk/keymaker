@@ -190,6 +190,7 @@ def get_uid(args):
     else:
         iam_resource = boto3.resource("iam")
 
+    args.user += config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
     try:
         user_id = iam_resource.User(args.user).user_id
         uid = aws_to_unix_id(user_id)
