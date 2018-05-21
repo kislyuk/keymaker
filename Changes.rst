@@ -1,3 +1,8 @@
+Changes for v1.0.5 (2018-05-21)
+===============================
+
+Fixup for get_uid with user suffix
+
 Changes for v1.0.4 (2018-05-18)
 ===============================
 
