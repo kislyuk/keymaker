@@ -215,7 +215,6 @@ def get_groups(args):
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
                                    resource="role/" + config["keymaker_id_resolver_iam_role"])
         iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
-
     else:
         iam_resource = boto3.resource("iam")
 
@@ -402,8 +401,6 @@ def sync_groups(args):
         user_names_in_iam_group = [user.name[:-len(iam_linux_user_suffix)]
                                    for user in group.users.all()
                                    if user.name.endswith(iam_linux_user_suffix)]
-        for user in user_names_in_iam_group:
-            user_names_in_iam_group = []
         for user in user_names_in_iam_group:
             if not is_managed(user):
                 logger.warn("User %s is not provisioned or not managed by keymaker, skipping", user)
