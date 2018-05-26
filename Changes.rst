@@ -1,3 +1,10 @@
+Changes for v1.0.6 (2018-05-25)
+===============================
+
+-  Fix logic error in keymaker sync_groups
+
+-  Allow username suffix to be set in keymaker configure
+
 Changes for v1.0.5 (2018-05-21)
 ===============================
 
