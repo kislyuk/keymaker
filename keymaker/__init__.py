@@ -131,7 +131,7 @@ def get_authorized_keys(args):
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"]["Description"])
-        args.user += config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
+        args.user += config.get("keymaker_linux_user_suffix", default_iam_linux_user_suffix)
     except Exception as e:
         logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
@@ -140,7 +140,7 @@ def get_authorized_keys(args):
         iam = get_assume_role_session(sts, id_resolver_role_arn).client("iam")
     if "keymaker_require_iam_group" in config:
         groups = []
-        for page in iam.get_paginator('list_groups_for_user').paginate(UserName=args.user):
+        for page in iam.get_paginator("list_groups_for_user").paginate(UserName=args.user):
             groups.extend([group["GroupName"] for group in page["Groups"]])
         if config["keymaker_require_iam_group"] not in groups:
             err_exit("User {u} is not in group {g}".format(u=args.user, g=config["keymaker_require_iam_group"]))
@@ -192,7 +192,7 @@ def get_uid(args):
     else:
         iam_resource = boto3.resource("iam")
 
-    args.user += config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
+    args.user += config.get("keymaker_linux_user_suffix", default_iam_linux_user_suffix)
     try:
         user_id = iam_resource.User(args.user).user_id
         uid = aws_to_unix_id(user_id)
@@ -218,8 +218,8 @@ def get_groups(args):
     else:
         iam_resource = boto3.resource("iam")
 
-    iam_linux_group_prefix = config.get('keymaker_linux_group_prefix', default_iam_linux_group_prefix)
-    args.user += config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
+    iam_linux_group_prefix = config.get("keymaker_linux_group_prefix", default_iam_linux_group_prefix)
+    args.user += config.get("keymaker_linux_user_suffix", default_iam_linux_user_suffix)
     try:
         for group in iam_resource.User(args.user).groups.all():
             if group.name.startswith(iam_linux_group_prefix):
@@ -295,16 +295,17 @@ def select_ssh_public_key(identity=None):
         try:
             keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
             if len(keys) > 1:
-                exit(('Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys '
+                exit(("Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys "
                       'with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
             return keys[0]
         except subprocess.CalledProcessError:
             default_path = os.path.expanduser("~/.ssh/id_rsa.pub")
             if os.path.exists(default_path):
-                msg = 'Using {} as your SSH key. If this is not what you want, specify one with --identity or load it with ssh-add'  # noqa
+                msg = ("Using {} as your SSH key. If this is not what you want, specify one with --identity or load it "
+                       "with ssh-add")
                 logger.warning(msg.format(default_path))
                 return load_ssh_public_key(default_path)
-            exit(('No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a '
+            exit(("No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a "
                   'new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
 
 def upload_key(args):
@@ -318,7 +319,8 @@ def upload_key(args):
         user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") == "LimitExceeded":
-            logger.error('The current IAM user has filled their public SSH key quota. Delete keys with "keymaker list_keys" and "keymaker delete_key".')  # noqa
+            logger.error("The current IAM user has filled their public SSH key quota. "
+                         'Delete keys with "keymaker list_keys" and "keymaker delete_key".')
         raise
 
 def list_keys(args):
@@ -384,8 +386,8 @@ def sync_groups(args):
     else:
         iam_resource = boto3.resource("iam")
 
-    iam_linux_group_prefix = config.get('keymaker_linux_group_prefix', default_iam_linux_group_prefix)
-    iam_linux_user_suffix = config.get('keymaker_linux_user_suffix', default_iam_linux_user_suffix)
+    iam_linux_group_prefix = config.get("keymaker_linux_group_prefix", default_iam_linux_group_prefix)
+    iam_linux_user_suffix = config.get("keymaker_linux_user_suffix", default_iam_linux_user_suffix)
 
     for group in iam_resource.groups.all():
         if not group.name.startswith(iam_linux_group_prefix):
