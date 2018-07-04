@@ -16,7 +16,7 @@ On instances that accept SSH logins:
 
 - Run ``keymaker install``.
 - Ensure processes launched by sshd have the IAM permissions ``iam:GetSSHPublicKey``, ``iam:ListSSHPublicKeys``, 
-  ``iam:GetUser``, ``iam:ListGroups``, ``iam:GetGroup``, ``iam:ListGroupsForUser``, ``iam:GetRole``, ``iam:GetGroup``
+  ``iam:GetUser``, ``iam:ListGroups``, ``iam:GetGroup``, ``iam:ListGroupsForUser``, ``iam:GetRole``,
   and ``sts:GetCallerIdentity``. The easiest way to do this is by running 
   ``keymaker configure --instance-iam-role ROLE_NAME``
   as a privileged IAM user, which will create and attach a
