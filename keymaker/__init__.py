@@ -400,7 +400,7 @@ def sync_groups(args):
             logger.info("Provisioning group %s from IAM", unix_group_name)
             subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])
             unix_group = grp.getgrnam(unix_group_name)
-        user_names_in_iam_group = [user.name[:-len(iam_linux_user_suffix)]
+        user_names_in_iam_group = [user.name[:len(user.name)-len(iam_linux_user_suffix)]
                                    for user in group.users.all()
                                    if user.name.endswith(iam_linux_user_suffix)]
         for user in user_names_in_iam_group:
