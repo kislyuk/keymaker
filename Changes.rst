@@ -1,3 +1,8 @@
+Changes for v1.0.7 (2018-07-16)
+===============================
+
+-  Avoid trimming username if the suffix length is zero (#47)
+
 Changes for v1.0.6 (2018-05-25)
 ===============================
 
