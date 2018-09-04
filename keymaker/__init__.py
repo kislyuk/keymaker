@@ -272,7 +272,7 @@ def install(args):
             print(line, file=fh)
 
     with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
-        print("*/5 * * * * root /usr/local/bin/keymaker sync_groups", file=fh)
+        print("*/5 * * * * /usr/local/bin/keymaker sync_groups", file=fh)
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
