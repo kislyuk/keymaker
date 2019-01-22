@@ -1,3 +1,8 @@
+Changes for v1.0.8 (2019-01-22)
+===============================
+
+-  Provide more feedback when managing keys
+
 Changes for v1.0.7 (2018-07-16)
 ===============================
 
