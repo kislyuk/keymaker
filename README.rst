@@ -18,9 +18,9 @@ On instances that accept SSH logins:
 - Ensure processes launched by sshd have the IAM permissions ``iam:GetSSHPublicKey``, ``iam:ListSSHPublicKeys``, 
   ``iam:GetUser``, ``iam:ListGroups``, ``iam:GetGroup``, ``iam:ListGroupsForUser``, ``iam:GetRole``,
   and ``sts:GetCallerIdentity``. The easiest way to do this is by running 
-  ``keymaker configure --instance-iam-role ROLE_NAME``
+  ``keymaker configure --instance-iam-role INSTANCE_ROLE``
   as a privileged IAM user, which will create and attach a
-  Keymaker IAM policy to the role ``ROLE_NAME`` (which you should then assign, via an IAM Instance Profile, to any
+  Keymaker IAM policy to the role ``INSTANCE_ROLE`` (which you should then assign, via an IAM Instance Profile, to any
   instances you launch). You can also manually configure these permissions, or attach the IAMReadOnlyAccess managed
   policy.
 
@@ -83,7 +83,7 @@ role ``id_resolver`` in account 123456789012 is expected to have a trust policy 
 perform sts:AssumeRole on ``id_resolver``.
 
 Run the following command in the ID resolver account (that contains the IAM users) to apply this configuration automatically:
-``keymaker configure --instance-iam-role arn:aws:iam::987654321098:role/ROLE_NAME --cross-account-profile AWS_CLI_PROFILE_NAME``.
+``keymaker configure --instance-iam-role arn:aws:iam::987654321098:role/INSTANCE_ROLE --cross-account-profile AWS_CLI_PROFILE_NAME``.
 Here, 987654321098 is the account ID of the federated account where EC2 instances will run, and AWS_CLI_PROFILE_NAME
 is the name of the `AWS CLI role profile <http://docs.aws.amazon.com/cli/latest/userguide/cli-roles.html>`_ that you
 have set up to access the federated account.

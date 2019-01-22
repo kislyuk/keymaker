@@ -316,7 +316,9 @@ def upload_key(args):
     else:
         user = iam.CurrentUser().user
     try:
-        user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
+        res = user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
+        res["SSHPublicKey"]["UploadDate"] = str(res["SSHPublicKey"]["UploadDate"])
+        print(json.dumps(res["SSHPublicKey"], indent=True))
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") == "LimitExceeded":
             logger.error("The current IAM user has filled their public SSH key quota. "
@@ -354,7 +356,8 @@ def delete_key(args):
         user = iam.User(args.user)
     else:
         user = iam.CurrentUser().user
-    print(iam.meta.client.delete_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id))
+    iam.meta.client.delete_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id)
+    print("Successfully deleted SSH public key", args.ssh_public_key_id)
 
 def is_managed(unix_username):
     try:
