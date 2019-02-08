@@ -4,7 +4,7 @@ import os, glob
 from setuptools import setup, find_packages
 
 install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(__file__), "requirements.txt"))]
-tests_require = ["coverage", "flake8", "wheel"]
+tests_require = ["coverage", "flake8", "wheel", "bandit"]
 
 setup(
     name='keymaker',

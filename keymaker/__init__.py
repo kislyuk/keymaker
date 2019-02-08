@@ -8,7 +8,7 @@ import json
 import re
 import time
 import logging
-import subprocess
+import subprocess  # nosec
 import pwd
 import hashlib
 import codecs
@@ -111,7 +111,7 @@ def configure(args):
 
 def parse_keymaker_config(iam_role_description):
     config = {}
-    for role_desc_word in re.split("[\s\,]+", iam_role_description or ""):
+    for role_desc_word in re.split(r"[\s\,]+", iam_role_description or ""):
         if role_desc_word.startswith("keymaker_") and role_desc_word.count("=") == 1:
             config.update([shlex.split(role_desc_word)[0].split("=")])
     return config
@@ -132,7 +132,7 @@ def get_authorized_keys(args):
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam.get_role(RoleName=role_name)["Role"]["Description"])
         args.user += config.get("keymaker_linux_user_suffix", default_iam_linux_user_suffix)
-    except Exception as e:
+    except Exception:
         logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
@@ -181,7 +181,7 @@ def get_uid(args):
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"]["Description"])
-    except Exception as e:
+    except Exception:
         logger.info("No IAM role based configuration found")
 
     if "keymaker_id_resolver_account" in config:
@@ -209,7 +209,7 @@ def get_groups(args):
         role_arn = parse_arn(sts.get_caller_identity()["Arn"])
         _, role_name, instance_id = role_arn.resource.split("/", 2)
         config = parse_keymaker_config(iam_caller.get_role(RoleName=role_name)["Role"]["Description"])
-    except Exception as e:
+    except Exception:
         logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
         id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
@@ -234,7 +234,7 @@ def install(args):
     try:
         pwd.getpwnam(user)
     except KeyError:
-        subprocess.check_call(["useradd", user,
+        subprocess.check_call(["useradd", user,  # nosec
                                "--comment", "Keymaker SSH key daemon",
                                "--shell", "/usr/sbin/nologin"])
 
@@ -242,9 +242,9 @@ def install(args):
     with open(authorized_keys_script_path, "w") as fh:
         print("#!/bin/bash -e", file=fh)
         print('keymaker get_authorized_keys "$@"', file=fh)
-    subprocess.check_call(["chown", "root", authorized_keys_script_path])
-    subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])
-    subprocess.check_call(["chmod", "a+x", authorized_keys_script_path])
+    subprocess.check_call(["chown", "root", authorized_keys_script_path])  # nosec
+    subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])  # nosec
+    subprocess.check_call(["chmod", "a+x", authorized_keys_script_path])  # nosec
 
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config_lines = fh.read().splitlines()
@@ -260,7 +260,7 @@ def install(args):
             print(line, file=fh)
 
     # TODO: print explanation if errors occur
-    subprocess.check_call(["sshd", "-t"])
+    subprocess.check_call(["sshd", "-t"])  # nosec
 
     pam_config_line = "auth optional pam_exec.so stdout /usr/local/bin/keymaker-create-account-for-iam-user"
     with open("/etc/pam.d/sshd") as fh:
@@ -283,7 +283,7 @@ def load_ssh_public_key(filename):
         key = fh.read()
         if "PRIVATE KEY" in key:
             logger.info("Extracting public key from private key {}".format(filename))
-            key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename]).decode()
+            key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename]).decode()  # nosec
     return key
 
 def select_ssh_public_key(identity=None):
@@ -293,7 +293,7 @@ def select_ssh_public_key(identity=None):
         return load_ssh_public_key(identity)
     else:
         try:
-            keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
+            keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()  # nosec
             if len(keys) > 1:
                 exit(("Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys "
                       'with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
@@ -401,7 +401,7 @@ def sync_groups(args):
             unix_group = grp.getgrnam(unix_group_name)
         except KeyError:
             logger.info("Provisioning group %s from IAM", unix_group_name)
-            subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])
+            subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])  # nosec
             unix_group = grp.getgrnam(unix_group_name)
         user_names_in_iam_group = [user.name[:len(user.name)-len(iam_linux_user_suffix)]
                                    for user in group.users.all()
@@ -412,8 +412,8 @@ def sync_groups(args):
                 continue
             if user not in unix_group.gr_mem:
                 logger.info("Adding user %s to group %s", user, unix_group_name)
-                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])
+                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])  # nosec
         for unix_user_name in filter(is_managed, unix_group.gr_mem):
             if unix_user_name not in user_names_in_iam_group:
                 logger.info("Removing user %s from group %s", unix_user_name, unix_group_name)
-                subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])
+                subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])  # nosec
