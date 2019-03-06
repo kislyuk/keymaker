@@ -104,6 +104,17 @@ instance. As an example, this can expand the scope of a compromised AWS secret k
 policy restricting access to the
 `UploadSSHPublicKey <http://docs.aws.amazon.com/IAM/latest/APIReference/API_UploadSSHPublicKey.html>`_ method.
 
+FAQ
+---
+
+**Does Keymaker require root access?**
+
+The answer depends on what you mean by "running keymaker".
+
+- To install keymaker into the sshd config and crontab (keymaker install), you need access to those daemons' config files, which normally means you need root access.
+- The keymaker authorization hook (runs when sshd logs you in) does not need root access.
+- None of the client-side commands (listed under "Usage" above) need root access.
+
 EFS integration
 ---------------
 Email kislyuk@gmail.com for details on the EFS integration.
