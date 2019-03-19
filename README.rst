@@ -56,7 +56,8 @@ Run ``keymaker install`` on instances that you want your users to connect to. Th
 
 * A ``pam_exec`` PAM configuration directive, which causes sshd to call ``keymaker-create-account-for-iam-user`` early
   in the login process. This script detects if a Linux user account does not exist for the authenticating principal but
-  an authorized IAM account exists with the same name, and creates the account on demand.
+  an authorized IAM account exists with the same name, and creates the account on demand. The UID of the account is
+  computed from a hash of the user's SSH key, making it stable across instances that run Keymaker.
 
 * A `cron job <https://en.wikipedia.org/wiki/Cron>`_ that runs on your instance once an hour and synchronizes IAM group
   membership information. Only IAM groups whose names start with a configurable prefix (by default, ``keymaker_*``) are
@@ -107,9 +108,9 @@ policy restricting access to the
 FAQ
 ---
 
-**Does Keymaker require root access?**
+**Does running Keymaker require root access?**
 
-The answer depends on what you mean by "running keymaker".
+The answer depends on what you mean by "running Keymaker".
 
 - To install keymaker into the sshd config and crontab (keymaker install), you need access to those daemons' config files, which normally means you need root access.
 - The keymaker authorization hook (runs when sshd logs you in) does not need root access.
