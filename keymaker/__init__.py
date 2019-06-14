@@ -229,6 +229,16 @@ def get_groups(args):
         msg = "in get groups Error while retrieving UID for {u}: {e}"
         err_exit(msg.format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
+def get_absolute_path(target_file):
+    if 'PATH' in os.environ:
+      for p in os.environ['PATH'].split(':'):
+        test_path = "{0}/{1}".format(p, target_file)
+        if os.path.isfile(test_path):
+          absolute_path = os.path.abspath(test_path)
+          return absolute_path
+
+    return None
+
 def install(args):
     user = args.user or "keymaker"
     try:
@@ -262,7 +272,13 @@ def install(args):
     # TODO: print explanation if errors occur
     subprocess.check_call(["sshd", "-t"])  # nosec
 
-    pam_config_line = "auth optional pam_exec.so stdout /usr/local/bin/keymaker-create-account-for-iam-user"
+    keymaker_create_account_absolute_path = get_absolute_path("keymaker-create-account-for-iam-user")
+    if keymaker_create_account_absolute_path:
+        pam_config_line = "auth optional pam_exec.so stdout {0}".format(keymaker_create_account_absolute_path)
+    else:
+        # TODO: err_exit(msg, code=os.errno.ENOENT)
+        exit("Cannot add keymaker-create-account-for-iam-user to pam.d config, file not in PATH")
+
     with open("/etc/pam.d/sshd") as fh:
         pam_config_lines = fh.read().splitlines()
     if pam_config_line not in pam_config_lines:
@@ -271,8 +287,13 @@ def install(args):
         for line in pam_config_lines:
             print(line, file=fh)
 
-    with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
-        print("*/5 * * * * root /usr/local/bin/keymaker sync_groups", file=fh)
+    keymaker_absolute_path = get_absolute_path("keymaker")
+    if keymaker_absolute_path:
+        with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
+            print("*/5 * * * * root {0} sync_groups".format(keymaker_absolute_path), file=fh)
+    else:
+        # TODO: err_exit(msg, code=os.errno.ENOENT)
+        exit("Cannot add keymaker-group-sync cron entry, keymaker not in PATH")
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
