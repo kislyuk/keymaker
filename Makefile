@@ -7,7 +7,6 @@ test_deps:
 
 lint: test_deps
 	./setup.py flake8
-	bandit --recursive $$(python setup.py --name) --skip B101
 
 test: test_deps lint
 	coverage run --source=$$(python setup.py --name) ./test/test.py
@@ -27,6 +26,6 @@ clean:
 	-rm -rf build dist
 	-rm -rf *.egg-info
 
-.PHONY: lint test test_deps docs install clean
+.PHONY: lint test test_deps docs install clean version keymaker/version.py
 
 include common.mk

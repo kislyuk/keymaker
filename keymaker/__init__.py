@@ -2,19 +2,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from io import open
 
-import os
-import sys
-import json
-import re
-import time
-import logging
-import subprocess  # nosec
-import pwd
-import hashlib
-import codecs
-import grp
-import shlex
+import os, sys, json, re, time, logging, subprocess, pwd, hashlib, grp, shlex
 from collections import namedtuple
+
+try:
+    from shutil import which
+except ImportError:
+    def which(name):
+        if os.path.exists("/usr/local/bin/" + name):
+            return "/usr/local/bin/" + name
+        elif os.path.exists("/usr/bin/" + name):
+            return "/usr/bin/" + name
 
 import boto3
 from botocore.exceptions import ClientError
@@ -34,6 +32,12 @@ ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
 default_iam_linux_group_prefix = "keymaker_"
 default_iam_linux_user_suffix = ""
+
+def find_executable(name):
+    path = which(name)
+    if not path:
+        raise Exception("Keymaker was not installed correctly")
+    return path
 
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
@@ -230,21 +234,22 @@ def get_groups(args):
         err_exit(msg.format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
 def install(args):
+    find_executable("keymaker")  # Trigger error early if keymaker was not installed correctly
     user = args.user or "keymaker"
     try:
         pwd.getpwnam(user)
     except KeyError:
-        subprocess.check_call(["useradd", user,  # nosec
+        subprocess.check_call(["useradd", user,
                                "--comment", "Keymaker SSH key daemon",
                                "--shell", "/usr/sbin/nologin"])
 
     authorized_keys_script_path = "/usr/sbin/keymaker-get-public-keys"
     with open(authorized_keys_script_path, "w") as fh:
         print("#!/bin/bash -e", file=fh)
-        print('keymaker get_authorized_keys "$@"', file=fh)
-    subprocess.check_call(["chown", "root", authorized_keys_script_path])  # nosec
-    subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])  # nosec
-    subprocess.check_call(["chmod", "a+x", authorized_keys_script_path])  # nosec
+        print(find_executable("keymaker") + ' get_authorized_keys "$@"', file=fh)
+    subprocess.check_call(["chown", "root", authorized_keys_script_path])
+    subprocess.check_call(["chmod", "go-w", authorized_keys_script_path])
+    subprocess.check_call(["chmod", "a+x", authorized_keys_script_path])
 
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config_lines = fh.read().splitlines()
@@ -260,9 +265,9 @@ def install(args):
             print(line, file=fh)
 
     # TODO: print explanation if errors occur
-    subprocess.check_call(["sshd", "-t"])  # nosec
+    subprocess.check_call(["sshd", "-t"])
 
-    pam_config_line = "auth optional pam_exec.so stdout /usr/local/bin/keymaker-create-account-for-iam-user"
+    pam_config_line = "auth optional pam_exec.so stdout " + find_executable("keymaker-create-account-for-iam-user")
     with open("/etc/pam.d/sshd") as fh:
         pam_config_lines = fh.read().splitlines()
     if pam_config_line not in pam_config_lines:
@@ -272,7 +277,7 @@ def install(args):
             print(line, file=fh)
 
     with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
-        print("*/5 * * * * root /usr/local/bin/keymaker sync_groups", file=fh)
+        print("*/5 * * * * root " + find_executable("keymaker") + " sync_groups", file=fh)
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
@@ -283,7 +288,7 @@ def load_ssh_public_key(filename):
         key = fh.read()
         if "PRIVATE KEY" in key:
             logger.info("Extracting public key from private key {}".format(filename))
-            key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename]).decode()  # nosec
+            key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename]).decode()
     return key
 
 def select_ssh_public_key(identity=None):
@@ -293,7 +298,7 @@ def select_ssh_public_key(identity=None):
         return load_ssh_public_key(identity)
     else:
         try:
-            keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()  # nosec
+            keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
             if len(keys) > 1:
                 exit(("Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys "
                       'with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
@@ -401,7 +406,7 @@ def sync_groups(args):
             unix_group = grp.getgrnam(unix_group_name)
         except KeyError:
             logger.info("Provisioning group %s from IAM", unix_group_name)
-            subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])  # nosec
+            subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])
             unix_group = grp.getgrnam(unix_group_name)
         user_names_in_iam_group = [user.name[:len(user.name)-len(iam_linux_user_suffix)]
                                    for user in group.users.all()
@@ -412,8 +417,8 @@ def sync_groups(args):
                 continue
             if user not in unix_group.gr_mem:
                 logger.info("Adding user %s to group %s", user, unix_group_name)
-                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])  # nosec
+                subprocess.check_call(["usermod", "--append", "--groups", unix_group_name, user])
         for unix_user_name in filter(is_managed, unix_group.gr_mem):
             if unix_user_name not in user_names_in_iam_group:
                 logger.info("Removing user %s from group %s", unix_user_name, unix_group_name)
-                subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])  # nosec
+                subprocess.check_call(["gpasswd", "--delete", unix_user_name, unix_group_name])
