@@ -47,6 +47,8 @@ class KeymakerTests(unittest.TestCase):
             subprocess.check_call(["ssh-keygen", "-t", "rsa", "-N", "", "-f", os.path.join(td, "id_rsa")])
             keymaker.load_ssh_public_key(os.path.join(td, "id_rsa"))
 
+    def test_find_executable(self):
+        self.assertNotEqual(keymaker.find_executable("ls"), None)
 
 if __name__ == "__main__":
     unittest.main()
