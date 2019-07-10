@@ -1,3 +1,9 @@
+Changes for v1.0.9 (2019-07-10)
+===============================
+
+-  Look up keymaker executables in path using shutil.which and fallback
+   (#56)
+
 Changes for v1.0.8 (2019-01-22)
 ===============================
 
