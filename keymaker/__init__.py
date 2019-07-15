@@ -3,32 +3,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from io import open
 
 import os, sys, json, re, time, logging, subprocess, pwd, hashlib, grp, shlex
-from collections import namedtuple
-
-try:
-    from shutil import which
-except ImportError:
-    def which(name):
-        if os.path.exists("/usr/local/bin/" + name):
-            return "/usr/local/bin/" + name
-        elif os.path.exists("/usr/bin/" + name):
-            return "/usr/bin/" + name
 
 import boto3
 from botocore.exceptions import ClientError
 
 from .iam.policies import trust_policy_template, keymaker_instance_role_policy, keymaker_instance_assume_role_statement
+from .util import which, ARN, from_bytes
 
 USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
 logger = logging.getLogger(__name__)
-
-class ARN(namedtuple("ARN", "partition service region account resource")):
-    def __str__(self):
-        return ":".join(["arn"] + list(self))
-
-
-ARN.__new__.__defaults__ = ("aws", "", "", "", "")
 
 default_iam_linux_group_prefix = "keymaker_"
 default_iam_linux_user_suffix = ""
@@ -155,17 +139,6 @@ def get_authorized_keys(args):
                 print(key["SSHPublicKey"]["SSHPublicKeyBody"])
     except Exception as e:
         err_exit("Error while retrieving IAM SSH keys for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
-
-def from_bytes(data, big_endian=False):
-    """Used on Python 2 to handle int.from_bytes"""
-    if isinstance(data, str):
-        data = bytearray(data)
-    if big_endian:
-        data = reversed(data)
-    num = 0
-    for offset, byte in enumerate(data):
-        num += byte << (offset * 8)
-    return num
 
 def aws_to_unix_id(aws_key_id):
     """Converts a AWS Key ID into a UID"""
