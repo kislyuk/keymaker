@@ -237,8 +237,10 @@ def install(args):
         for line in sshd_config_lines:
             print(line, file=fh)
 
-    # TODO: print explanation if errors occur
-    subprocess.check_call(["sshd", "-t"])
+    try:
+        subprocess.check_call(["sshd", "-t"])
+    except subprocess.CalledProcessError as err:
+        err_exit("sshd configuration checks failed")
 
     pam_config_line = "auth optional pam_exec.so stdout " + find_executable("keymaker-create-account-for-iam-user")
     with open("/etc/pam.d/sshd") as fh:
@@ -248,6 +250,11 @@ def install(args):
     with open("/etc/pam.d/sshd", "w") as fh:
         for line in pam_config_lines:
             print(line, file=fh)
+
+    try:
+        subprocess.check_call(["service", "sshd", "reload"])
+    except subprocess.CalledProcessError as err:
+        err_exit("Unable to reload sshd service")
 
     with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
         print("*/5 * * * * root " + find_executable("keymaker") + " sync_groups", file=fh)
