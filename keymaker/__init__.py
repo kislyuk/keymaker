@@ -257,7 +257,9 @@ def install(args):
         err_exit("Unable to reload sshd service")
 
     with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
-        print("*/5 * * * * root " + find_executable("keymaker") + " sync_groups", file=fh)
+        print("""SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/5 * * * * root """ + find_executable("keymaker") + " sync_groups", file=fh)
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
