@@ -7,7 +7,6 @@ if getent passwd "$PAM_USER" >/dev/null 2>&1; then
     exit $PAM_SUCCESS
 else
     # Create the user, then terminate the PAM authentication stack. The SSH client will fail, and the user will need to try again.
-    # TODO: figure out how to display info banner
     # Verify that the IAM user exists.
     if ! keymaker get_authorized_keys "$PAM_USER" >/dev/null 2>&1; then
       exit $PAM_SUCCESS
