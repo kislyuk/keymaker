@@ -301,16 +301,20 @@ def upload_key(args):
     if args.user:
         user = iam.User(args.user)
     else:
-        user = iam.CurrentUser().user
+        try:
+            user = iam.CurrentUser().user
+        except ClientError as e:
+            if "Must specify userName when calling with non-User credentials" in str(e):
+                err_exit("Your AWS identity is an IAM role, but you have asked for an IAM user's SSH key be uploaded. "
+                         'Check your AWS profile/credentials or set the IAM username with the "--user USER" option.')
     try:
         res = user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
         res["SSHPublicKey"]["UploadDate"] = str(res["SSHPublicKey"]["UploadDate"])
         print(json.dumps(res["SSHPublicKey"], indent=True))
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") == "LimitExceeded":
-            logger.error("The current IAM user has filled their public SSH key quota. "
-                         'Delete keys with "keymaker list_keys" and "keymaker delete_key".')
-        raise
+            err_exit("The current IAM user has filled their public SSH key quota. "
+                     'Delete keys with "keymaker list_keys" and "keymaker delete_key".')
 
 def list_keys(args):
     iam = boto3.resource("iam")
