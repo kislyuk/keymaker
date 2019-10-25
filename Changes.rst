@@ -1,3 +1,14 @@
+Changes for v1.1.0 (2019-10-25)
+===============================
+
+-  Remove unused dependency; bump others to match Ubuntu 18.04
+
+-  keymaker upload_key: add friendlier errors
+
+-  Fix crontab file for group syncing
+
+-  Print error message for sshd config and reload failures (#52)
+
 Changes for v1.0.9 (2019-07-10)
 ===============================
 
