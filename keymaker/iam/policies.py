@@ -1,12 +1,6 @@
 trust_policy_template = {
     "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": None,
-            "Action": "sts:AssumeRole"
-        }
-    ]
+    "Statement": [{"Effect": "Allow", "Principal": None, "Action": "sts:AssumeRole"}],
 }
 
 keymaker_instance_role_policy = {
@@ -22,15 +16,11 @@ keymaker_instance_role_policy = {
                 "iam:ListGroups",
                 "iam:ListGroupsForUser",
                 "iam:GetRole",
-                "sts:GetCallerIdentity"
+                "sts:GetCallerIdentity",
             ],
-            "Resource": "*"
+            "Resource": "*",
         }
-    ]
+    ],
 }
 
-keymaker_instance_assume_role_statement = {
-    "Action": "sts:AssumeRole",
-    "Resource": None,
-    "Effect": "Allow"
-}
+keymaker_instance_assume_role_statement = {"Action": "sts:AssumeRole", "Resource": None, "Effect": "Allow"}

@@ -138,8 +138,8 @@ License
 -------
 Licensed under the terms of the `Apache License, Version 2.0 <http://www.apache.org/licenses/LICENSE-2.0>`_.
 
-.. image:: https://travis-ci.org/kislyuk/keymaker.svg
-        :target: https://travis-ci.org/kislyuk/keymaker
+.. image:: https://github.com/kislyuk/keymaker/workflows/ci/badge.svg
+        :target: https://github.com/kislyuk/keymaker/actions
 .. image:: https://coveralls.io/repos/kislyuk/keymaker/badge.svg?branch=master
         :target: https://coveralls.io/r/kislyuk/keymaker?branch=master
 .. image:: https://img.shields.io/pypi/v/keymaker.svg

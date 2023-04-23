@@ -1,14 +1,20 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import grp
+import hashlib
+import json
+import logging
+import os
+import pwd
+import re
+import shlex
+import subprocess
+import sys
 from io import open
-
-import os, sys, json, re, time, logging, subprocess, pwd, hashlib, grp, shlex
 
 import boto3
 from botocore.exceptions import ClientError
 
-from .iam.policies import trust_policy_template, keymaker_instance_role_policy, keymaker_instance_assume_role_statement
-from .util import which, ARN, from_bytes
+from .iam.policies import keymaker_instance_assume_role_statement, keymaker_instance_role_policy, trust_policy_template
+from .util import ARN, from_bytes, which
 
 USING_PYTHON2 = True if sys.version_info < (3, 0) else False
 
@@ -17,14 +23,17 @@ logger = logging.getLogger(__name__)
 default_iam_linux_group_prefix = "keymaker_"
 default_iam_linux_user_suffix = ""
 
+
 def find_executable(name):
     path = which(name)
     if not path:
         raise Exception("Keymaker was not installed correctly")
     return path
 
+
 def parse_arn(arn):
     return ARN(*arn.split(":", 5)[1:])
+
 
 def ensure_iam_role(iam, role_name, trust_principal, keymaker_config=None):
     trust_policy = json.loads(json.dumps(trust_policy_template))
@@ -45,6 +54,7 @@ def ensure_iam_role(iam, role_name, trust_principal, keymaker_config=None):
     iam.meta.client.update_assume_role_policy(RoleName=role.name, PolicyDocument=json.dumps(trust_policy))
     return role
 
+
 def ensure_iam_policy(iam, policy_name, policy, description):
     for p in iam.policies.all():
         if p.policy_name == policy_name:
@@ -57,6 +67,7 @@ def ensure_iam_policy(iam, policy_name, policy, description):
         logger.info("Creating IAM policy %s", policy_name)
         return iam.create_policy(PolicyName=policy_name, PolicyDocument=json.dumps(policy), Description=description)
 
+
 def configure(args):
     iam = boto3.resource("iam")
     sts = boto3.client("sts")
@@ -68,13 +79,17 @@ def configure(args):
         keymaker_config.update(keymaker_require_iam_group=args.require_iam_group)
     if args.username_suffix:
         keymaker_config.update(keymaker_linux_user_suffix=args.username_suffix)
-    keymaker_policy_description = ("Used by EC2 instances running Keymaker (https://github.com/kislyuk/keymaker) to "
-                                   "access user SSH public keys stored in IAM user accounts.")
-    keymaker_policy = ensure_iam_policy(iam, args.instance_iam_policy, keymaker_instance_role_policy,
-                                        description=keymaker_policy_description)
+    keymaker_policy_description = (
+        "Used by EC2 instances running Keymaker (https://github.com/kislyuk/keymaker) to "
+        "access user SSH public keys stored in IAM user accounts."
+    )
+    keymaker_policy = ensure_iam_policy(
+        iam, args.instance_iam_policy, keymaker_instance_role_policy, description=keymaker_policy_description
+    )
     if args.instance_iam_role.startswith("arn:") and parse_arn(args.instance_iam_role).account != account_id:
-        keymaker_config.update(keymaker_id_resolver_account=account_id,
-                               keymaker_id_resolver_iam_role=args.id_resolver_iam_role)
+        keymaker_config.update(
+            keymaker_id_resolver_account=account_id, keymaker_id_resolver_iam_role=args.id_resolver_iam_role
+        )
         logger.info("Assuming role in profile %s", args.cross_account_profile)
         iam = boto3.Session(profile_name=args.cross_account_profile).resource("iam")
     elif args.cross_account_profile:
@@ -83,19 +98,23 @@ def configure(args):
     instance_role_name = args.instance_iam_role
     if args.instance_iam_role.startswith("arn:"):
         instance_role_name = parse_arn(instance_role_name).resource.split("/", 1)[1]
-    instance_role = ensure_iam_role(iam, instance_role_name, trust_principal={"Service": "ec2.amazonaws.com"},
-                                    keymaker_config=keymaker_config)
+    instance_role = ensure_iam_role(
+        iam, instance_role_name, trust_principal={"Service": "ec2.amazonaws.com"}, keymaker_config=keymaker_config
+    )
     if args.instance_iam_role.startswith("arn:") and parse_arn(args.instance_iam_role).account != account_id:
-        id_resolver_role = ensure_iam_role(boto3.resource("iam"), args.id_resolver_iam_role,
-                                           trust_principal={"AWS": args.instance_iam_role})
+        id_resolver_role = ensure_iam_role(
+            boto3.resource("iam"), args.id_resolver_iam_role, trust_principal={"AWS": args.instance_iam_role}
+        )
         id_resolver_role.attach_policy(PolicyArn=keymaker_policy.arn)
 
         keymaker_instance_assume_role_statement["Resource"] = id_resolver_role.arn
         keymaker_instance_role_policy["Statement"].append(keymaker_instance_assume_role_statement)
-        keymaker_policy = ensure_iam_policy(iam, args.instance_iam_policy, keymaker_instance_role_policy,
-                                            description=keymaker_policy_description)
+        keymaker_policy = ensure_iam_policy(
+            iam, args.instance_iam_policy, keymaker_instance_role_policy, description=keymaker_policy_description
+        )
     logger.info("Attaching IAM policy %s to IAM role %s", keymaker_policy, instance_role)
     instance_role.attach_policy(PolicyArn=keymaker_policy.arn)
+
 
 def parse_keymaker_config(iam_role_description):
     config = {}
@@ -104,11 +123,15 @@ def parse_keymaker_config(iam_role_description):
             config.update([shlex.split(role_desc_word)[0].split("=")])
     return config
 
+
 def get_assume_role_session(sts, role_arn):
     credentials = sts.assume_role(RoleArn=str(role_arn), RoleSessionName=__name__)["Credentials"]
-    return boto3.Session(aws_access_key_id=credentials["AccessKeyId"],
-                         aws_secret_access_key=credentials["SecretAccessKey"],
-                         aws_session_token=credentials["SessionToken"])
+    return boto3.Session(
+        aws_access_key_id=credentials["AccessKeyId"],
+        aws_secret_access_key=credentials["SecretAccessKey"],
+        aws_session_token=credentials["SessionToken"],
+    )
+
 
 def get_authorized_keys(args):
     session = boto3.Session()
@@ -123,8 +146,11 @@ def get_authorized_keys(args):
     except Exception:
         logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
-        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
-                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        id_resolver_role_arn = ARN(
+            service="iam",
+            account=config["keymaker_id_resolver_account"],
+            resource="role/" + config["keymaker_id_resolver_iam_role"],
+        )
         iam = get_assume_role_session(sts, id_resolver_role_arn).client("iam")
     if "keymaker_require_iam_group" in config:
         groups = []
@@ -140,6 +166,7 @@ def get_authorized_keys(args):
     except Exception as e:
         err_exit("Error while retrieving IAM SSH keys for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
+
 def aws_to_unix_id(aws_key_id):
     """Converts a AWS Key ID into a UID"""
     uid_bytes = hashlib.sha256(aws_key_id.encode()).digest()[-2:]
@@ -147,6 +174,7 @@ def aws_to_unix_id(aws_key_id):
         return 2000 + int(from_bytes(uid_bytes) // 2)
     else:
         return 2000 + (int.from_bytes(uid_bytes, byteorder=sys.byteorder) // 2)
+
 
 def get_uid(args):
     session = boto3.Session()
@@ -162,8 +190,11 @@ def get_uid(args):
         logger.info("No IAM role based configuration found")
 
     if "keymaker_id_resolver_account" in config:
-        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
-                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        id_resolver_role_arn = ARN(
+            service="iam",
+            account=config["keymaker_id_resolver_account"],
+            resource="role/" + config["keymaker_id_resolver_iam_role"],
+        )
         iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
 
     else:
@@ -177,6 +208,7 @@ def get_uid(args):
     except Exception as e:
         err_exit("Error while retrieving UID for {u}: {e}".format(u=args.user, e=str(e)), code=os.errno.EINVAL)
 
+
 def get_groups(args):
     session = boto3.Session()
     iam_caller = session.client("iam")
@@ -189,8 +221,11 @@ def get_groups(args):
     except Exception:
         logger.info("No IAM role based configuration found")
     if "keymaker_id_resolver_account" in config:
-        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
-                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        id_resolver_role_arn = ARN(
+            service="iam",
+            account=config["keymaker_id_resolver_account"],
+            resource="role/" + config["keymaker_id_resolver_iam_role"],
+        )
         iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
     else:
         iam_resource = boto3.resource("iam")
@@ -201,10 +236,11 @@ def get_groups(args):
         for group in iam_resource.User(args.user).groups.all():
             if group.name.startswith(iam_linux_group_prefix):
                 gid = aws_to_unix_id(group.group_id)  # noqa
-                print(group.name[len(iam_linux_group_prefix):])
+                print(group.name[len(iam_linux_group_prefix) :])
     except Exception as e:
         msg = "in get groups Error while retrieving UID for {u}: {e}"
         err_exit(msg.format(u=args.user, e=str(e)), code=os.errno.EINVAL)
+
 
 def install(args):
     find_executable("keymaker")  # Trigger error early if keymaker was not installed correctly
@@ -212,9 +248,7 @@ def install(args):
     try:
         pwd.getpwnam(user)
     except KeyError:
-        subprocess.check_call(["useradd", user,
-                               "--comment", "Keymaker SSH key daemon",
-                               "--shell", "/usr/sbin/nologin"])
+        subprocess.check_call(["useradd", user, "--comment", "Keymaker SSH key daemon", "--shell", "/usr/sbin/nologin"])
 
     authorized_keys_script_path = "/usr/sbin/keymaker-get-public-keys"
     with open(authorized_keys_script_path, "w") as fh:
@@ -227,19 +261,21 @@ def install(args):
     with open("/etc/ssh/sshd_config") as fh:
         sshd_config_lines = fh.read().splitlines()
     remove_lines = ["ChallengeResponseAuthentication no"]
-    add_lines = ["AuthorizedKeysCommand " + authorized_keys_script_path,
-                 "AuthorizedKeysCommandUser " + user,
-                 "ChallengeResponseAuthentication yes",
-                 "AuthenticationMethods publickey keyboard-interactive:pam,publickey"]
-    sshd_config_lines = [l for l in sshd_config_lines if l not in remove_lines]
-    sshd_config_lines += [l for l in add_lines if l not in sshd_config_lines]
+    add_lines = [
+        "AuthorizedKeysCommand " + authorized_keys_script_path,
+        "AuthorizedKeysCommandUser " + user,
+        "ChallengeResponseAuthentication yes",
+        "AuthenticationMethods publickey keyboard-interactive:pam,publickey",
+    ]
+    sshd_config_lines = [line for line in sshd_config_lines if line not in remove_lines]
+    sshd_config_lines += [line for line in add_lines if line not in sshd_config_lines]
     with open("/etc/ssh/sshd_config", "w") as fh:
         for line in sshd_config_lines:
             print(line, file=fh)
 
     try:
         subprocess.check_call(["sshd", "-t"])
-    except subprocess.CalledProcessError as err:
+    except subprocess.CalledProcessError:
         err_exit("sshd configuration checks failed")
 
     pam_config_line = "auth optional pam_exec.so stdout " + find_executable("keymaker-create-account-for-iam-user")
@@ -253,17 +289,24 @@ def install(args):
 
     try:
         subprocess.check_call(["service", "sshd", "reload"])
-    except subprocess.CalledProcessError as err:
+    except subprocess.CalledProcessError:
         err_exit("Unable to reload sshd service")
 
     with open("/etc/cron.d/keymaker-group-sync", "w") as fh:
-        print("""SHELL=/bin/sh
+        print(
+            """SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-*/5 * * * * root """ + find_executable("keymaker") + " sync_groups", file=fh)
+*/5 * * * * root """
+            + find_executable("keymaker")
+            + " sync_groups",
+            file=fh,
+        )
+
 
 def err_exit(msg, code=3):
     print(msg, file=sys.stderr)
     exit(code)
+
 
 def load_ssh_public_key(filename):
     with open(filename) as fh:
@@ -272,6 +315,7 @@ def load_ssh_public_key(filename):
             logger.info("Extracting public key from private key {}".format(filename))
             key = subprocess.check_output(["ssh-keygen", "-y", "-f", filename]).decode()
     return key
+
 
 def select_ssh_public_key(identity=None):
     if identity:
@@ -282,18 +326,27 @@ def select_ssh_public_key(identity=None):
         try:
             keys = subprocess.check_output(["ssh-add", "-L"]).decode("utf-8").splitlines()
             if len(keys) > 1:
-                exit(("Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys "
-                      'with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
+                msg = (
+                    "Multiple keys reported by ssh-add. Please specify a key filename with --identity or unload keys "
+                    'with "ssh-add -D", then load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'
+                )
+                exit(msg)
             return keys[0]
         except subprocess.CalledProcessError:
             default_path = os.path.expanduser("~/.ssh/id_rsa.pub")
             if os.path.exists(default_path):
-                msg = ("Using {} as your SSH key. If this is not what you want, specify one with --identity or load it "
-                       "with ssh-add")
+                msg = (
+                    "Using {} as your SSH key. If this is not what you want, specify one with --identity or load it "
+                    "with ssh-add"
+                )
                 logger.warning(msg.format(default_path))
                 return load_ssh_public_key(default_path)
-            exit(("No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a "
-                  'new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'))
+            msg = (
+                "No keys reported by ssh-add, and no key found in default path. Please run ssh-keygen to generate a "
+                'new key, or load the one you want with "ssh-add ~/.ssh/id_rsa" or similar.'
+            )
+            exit(msg)
+
 
 def upload_key(args):
     ssh_public_key = select_ssh_public_key(args.identity)
@@ -305,16 +358,21 @@ def upload_key(args):
             user = iam.CurrentUser().user
         except ClientError as e:
             if "Must specify userName when calling with non-User credentials" in str(e):
-                err_exit("Your AWS identity is an IAM role, but you have asked for an IAM user's SSH key be uploaded. "
-                         'Check your AWS profile/credentials or set the IAM username with the "--user USER" option.')
+                err_exit(
+                    "Your AWS identity is an IAM role, but you have asked for an IAM user's SSH key be uploaded. "
+                    'Check your AWS profile/credentials or set the IAM username with the "--user USER" option.'
+                )
     try:
         res = user.meta.client.upload_ssh_public_key(UserName=user.name, SSHPublicKeyBody=ssh_public_key)
         res["SSHPublicKey"]["UploadDate"] = str(res["SSHPublicKey"]["UploadDate"])
         print(json.dumps(res["SSHPublicKey"], indent=True))
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") == "LimitExceeded":
-            err_exit("The current IAM user has filled their public SSH key quota. "
-                     'Delete keys with "keymaker list_keys" and "keymaker delete_key".')
+            err_exit(
+                "The current IAM user has filled their public SSH key quota. "
+                'Delete keys with "keymaker list_keys" and "keymaker delete_key".'
+            )
+
 
 def list_keys(args):
     iam = boto3.resource("iam")
@@ -325,21 +383,25 @@ def list_keys(args):
     for key in iam.meta.client.list_ssh_public_keys(UserName=user.name)["SSHPublicKeys"]:
         print(key)
 
+
 def update_key(args, status):
     iam = boto3.resource("iam")
     if args.user:
         user = iam.User(args.user)
     else:
         user = iam.CurrentUser().user
-    return iam.meta.client.update_ssh_public_key(UserName=user.name,
-                                                 SSHPublicKeyId=args.ssh_public_key_id,
-                                                 Status=status)
+    return iam.meta.client.update_ssh_public_key(
+        UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id, Status=status
+    )
+
 
 def disable_key(args):
     print(update_key(args, status="Inactive"))
 
+
 def enable_key(args):
     print(update_key(args, status="Active"))
+
 
 def delete_key(args):
     iam = boto3.resource("iam")
@@ -350,6 +412,7 @@ def delete_key(args):
     iam.meta.client.delete_ssh_public_key(UserName=user.name, SSHPublicKeyId=args.ssh_public_key_id)
     print("Successfully deleted SSH public key", args.ssh_public_key_id)
 
+
 def is_managed(unix_username):
     try:
         uid = pwd.getpwnam(unix_username).pw_uid
@@ -359,8 +422,8 @@ def is_managed(unix_username):
         return False
     return True
 
+
 def sync_groups(args):
-    from pwd import getpwnam
 
     session = boto3.Session()
     iam_caller = session.client("iam")
@@ -373,8 +436,11 @@ def sync_groups(args):
     except Exception as e:
         logger.warn(str(e))
     if "keymaker_id_resolver_account" in config:
-        id_resolver_role_arn = ARN(service="iam", account=config["keymaker_id_resolver_account"],
-                                   resource="role/" + config["keymaker_id_resolver_iam_role"])
+        id_resolver_role_arn = ARN(
+            service="iam",
+            account=config["keymaker_id_resolver_account"],
+            resource="role/" + config["keymaker_id_resolver_iam_role"],
+        )
         iam_resource = get_assume_role_session(sts, id_resolver_role_arn).resource("iam")
 
     else:
@@ -387,16 +453,18 @@ def sync_groups(args):
         if not group.name.startswith(iam_linux_group_prefix):
             continue
         logger.info("Syncing IAM group %s", group.name)
-        unix_group_name = group.name[len(iam_linux_group_prefix):]
+        unix_group_name = group.name[len(iam_linux_group_prefix) :]
         try:
             unix_group = grp.getgrnam(unix_group_name)
         except KeyError:
             logger.info("Provisioning group %s from IAM", unix_group_name)
             subprocess.check_call(["groupadd", "--gid", str(aws_to_unix_id(group.group_id)), unix_group_name])
             unix_group = grp.getgrnam(unix_group_name)
-        user_names_in_iam_group = [user.name[:len(user.name)-len(iam_linux_user_suffix)]
-                                   for user in group.users.all()
-                                   if user.name.endswith(iam_linux_user_suffix)]
+        user_names_in_iam_group = [
+            user.name[: len(user.name) - len(iam_linux_user_suffix)]
+            for user in group.users.all()
+            if user.name.endswith(iam_linux_user_suffix)
+        ]
         for user in user_names_in_iam_group:
             if not is_managed(user):
                 logger.warn("User %s is not provisioned or not managed by keymaker, skipping", user)
